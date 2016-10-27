@@ -1,6 +1,6 @@
 package fdu;
 
-import fdu.runner.AlgoRunner;
+import fdu.algorithms.AlgoConfParser;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,16 +16,8 @@ public class App
 {
 
     public static void main(String[] args) throws Exception {
-        File confFile = new File("algo.conf");
-        List<String> lines;
-        try {
-            lines = Files.readAllLines(confFile.toPath(), Charset.forName("UTF-8"));
-        } catch (IOException e) {
-            throw new AssertionError(e);
-        }
-        AlgoRunner runner = new AlgoRunner();
-        for (String conf : lines){
-            runner.run(conf);
-        }
+        AlgoConfParser algoConfParser = new AlgoConfParser("algo.conf");
+        algoConfParser.parse();
+        System.out.println(algoConfParser.getOperationTree().getOperation().toString());
     }
 }

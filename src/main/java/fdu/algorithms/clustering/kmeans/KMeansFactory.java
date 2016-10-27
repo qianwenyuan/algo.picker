@@ -6,6 +6,7 @@ import fdu.algorithms.Params;
 import fdu.algorithms.Vector;
 import fdu.input.DataSet;
 import fdu.input.FileBasedDataSet;
+import fdu.operation.OperationTree;
 import fdu.utils.String2VectorConverter;
 
 import java.io.File;
@@ -35,6 +36,11 @@ public class KMeansFactory implements AlgoFactory {
 
     private int getK(String confData) {
         return Integer.parseInt(confData.split(" ")[2]);
+    }
+
+    @Override
+    public OperationTree getOperationTree() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }
