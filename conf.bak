@@ -1,0 +1,2 @@
+clustering KMeans 2 dataset1.txt
+clustering KMedoids 2 dataset2.txt

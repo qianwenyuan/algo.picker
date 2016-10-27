@@ -1,7 +1,5 @@
 package fdu.algorithms;
 
-import fdu.algorithms.Model;
-import fdu.algorithms.Params;
 import fdu.input.DataSet;
 
 /**
