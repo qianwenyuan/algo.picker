@@ -5,48 +5,36 @@
  */
 package fdu.operation;
 
+import fdu.operation.Generator.OperatorVisitor;
+
 /**
  *
- * @author Lu Chang
+ * @author slade
+ *
  */
 public abstract class Operation {
     
-    String type;
-    
-    String arg;
-    
-    String cond;
-    
-    public Operation() {
-        type = "";
-        arg  = "";
-        cond = "";
+    private String id;
+    private String type;
+    private String z;
+
+    public Operation(String id, String type, String z) {
+        this.id = id;
+        this.type = type;
+        this.z = z;
     }
-    
-    public abstract String operate();
-    
+
+    public String getId() {
+        return id;
+    }
+
     public String getType() {
         return type;
     }
-    
-    public void setType(String t) {
-        type = t;
+
+    public String getZ() {
+        return z;
     }
-    
-    public String getArg() {
-        return arg;
-    }
-    
-    public void setArg(String a) {
-        arg = a;
-    }
-    
-    public String getCond() {
-        return cond;
-    }
-    
-    public void setCond(String c) {
-        cond = c;
-    }
-    
+
+    public abstract void accept(OperatorVisitor visitor);
 }

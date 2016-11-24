@@ -5,43 +5,25 @@
  */
 package fdu.operation;
 
+import org.json.JSONObject;
+
 /**
  *
  * @author Lu Chang
  */
 public abstract class UnaryOperation extends Operation {
     
-    Operation operand;
-    
-    public UnaryOperation() {
-        super();
-        operand = null;
+    private Operation left;
+
+    public UnaryOperation(String id, String type, String z) {
+        super(id, type, z);
     }
-    
-    public UnaryOperation(Operation op) {
-        operand = op;
+
+    public void setLeft(Operation left) {
+        this.left = left;
     }
-    
-    public void setOperand(Operation op) {
-        operand = op;
+
+    public Operation getLeft() {
+        return left;
     }
-    
-    public Operation getOperand() {
-        return operand;
-    }
-    
-    @Override
-    public String toString() {
-        String retVal = "";
-        if (operand == null) {
-            retVal += arg;
-        } else {
-            retVal += type + " " + operand.toString();
-            if (!cond.equals("")) {
-                retVal += " " + cond;
-            }
-        }
-        return "(" + retVal + ")";
-    }
-    
 }

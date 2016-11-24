@@ -5,51 +5,34 @@
  */
 package fdu.operation;
 
+import fdu.operation.Generator.OperatorVisitor;
+
 /**
  *
  * @author Lu Chang
  */
 public abstract class BinaryOperation extends Operation {
     
-    Operation leftOperand;
-    
-    Operation rightOperand;
-    
-    public BinaryOperation() {
-        super();
-        leftOperand  = null;
-        rightOperand = null;
+    Operation left;
+    Operation right;
+
+    public BinaryOperation(String id, String type, String z) {
+        super(id, type, z);
     }
-    
-    public BinaryOperation(Operation lop, Operation rop) {
-        super();
-        leftOperand  = lop;
-        rightOperand = rop;
+
+    public void setLeft(Operation left) {
+        this.left = left;
     }
-    
-    public void setLeftOperand(Operation lop) {
-        leftOperand  = lop;
+
+    public void setRight(Operation right) {
+        this.right = right;
     }
-    
-    public void setRightOperand(Operation rop) {
-        rightOperand = rop;
+
+    public Operation getLeft() {
+        return left;
     }
-    
-    public Operation getLeftOperand() {
-        return leftOperand;
+
+    public Operation getRight() {
+        return right;
     }
-    
-    public Operation getRightOperand() {
-        return rightOperand;
-    }
-    
-    @Override
-    public String toString() {
-        String retVal = type + " " + leftOperand.toString() + " " + rightOperand.toString();
-        if (!cond.equals("")) {
-            retVal += " " + cond;
-        }
-        return "(" + retVal + ")";
-    }
-    
 }
