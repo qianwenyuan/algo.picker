@@ -3,19 +3,18 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu.operation;
-
-import org.json.JSONObject;
+package fdu.service.operation;
 
 /**
  *
  * @author Lu Chang
  */
-public abstract class UnaryOperation extends Operation {
+public abstract class BinaryOperation extends Operation {
     
-    private Operation left;
+    Operation left;
+    Operation right;
 
-    public UnaryOperation(String id, String type, String z) {
+    public BinaryOperation(String id, String type, String z) {
         super(id, type, z);
     }
 
@@ -23,7 +22,15 @@ public abstract class UnaryOperation extends Operation {
         this.left = left;
     }
 
+    public void setRight(Operation right) {
+        this.right = right;
+    }
+
     public Operation getLeft() {
         return left;
+    }
+
+    public Operation getRight() {
+        return right;
     }
 }

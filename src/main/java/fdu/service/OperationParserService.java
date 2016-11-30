@@ -3,31 +3,30 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu;
+package fdu.service;
 
-import fdu.operation.BinaryOperation;
-import fdu.operation.Operation;
-import fdu.operation.UnaryOperation;
-import fdu.operation.operators.*;
-import org.apache.commons.io.IOUtils;
+import fdu.Conf;
+import fdu.service.operation.BinaryOperation;
+import fdu.service.operation.Operation;
+import fdu.service.operation.UnaryOperation;
+import fdu.service.operation.operators.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.stereotype.Service;
 
-import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author slade
  */
-public class OperationParser {
-
-    String conf;
+@Service
+public class OperationParserService {
 
     Map<String, OpType> opTypeMap = new HashMap<>();
 
-    public OperationParser(String confPath) throws Exception {
-        conf = confWrapper(IOUtils.toString(new FileInputStream(confPath)));
+    public OperationParserService() throws IOException {
         opTypeMap.put(Conf.DATASOURCE, OpType.DATASOURCE);
         opTypeMap.put(Conf.FILTER, OpType.FILTER);
         opTypeMap.put(Conf.JOIN, OpType.JOIN);
@@ -39,9 +38,8 @@ public class OperationParser {
         return "{ \"infos\": " + conf + "}";
     }
 
-    public Operation parse() throws Exception {
-//        System.out.println(conf);
-        JSONObject confJSON = new JSONObject(conf);
+    public Operation parse(String conf) {
+        JSONObject confJSON = new JSONObject(confWrapper(conf));
         return parseOperation(confJSON);
     }
 
@@ -50,7 +48,7 @@ public class OperationParser {
         FILTER,
         JOIN,
         DATASOURCE,
-        PROJECT;
+        PROJECT
     }
 
     private Operation parseOperation(JSONObject json) {
@@ -98,7 +96,7 @@ public class OperationParser {
     }
 
     private Operation getOperationById(Map<String, Operation> operations, JSONObject obj) {
-        return operations.get(((JSONObject) obj).getString("id"));
+        return operations.get(obj.getString("id"));
     }
 
     private boolean isRoot(JSONObject obj) {
@@ -122,9 +120,8 @@ public class OperationParser {
 
     //TODO: use reflection instead of string enum mapping.
     private Operation convert(JSONObject obj) {
-        Operation result = null;
-//        System.out.println(obj.get("type"));
-        OpType type = opTypeMap.get(obj.get("type"));
+        Operation result;
+        OpType type = opTypeMap.get(obj.getString("type"));
         switch (type) {
             case DATASOURCE:
                 result = DataSource.newInstance(obj);

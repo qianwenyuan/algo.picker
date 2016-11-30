@@ -1,6 +1,6 @@
-package fdu.operation.Generator;
+package fdu.bean.generator;
 
-import fdu.operation.operators.*;
+import fdu.service.operation.operators.*;
 
 /**
  * Created by slade on 2016/11/24.

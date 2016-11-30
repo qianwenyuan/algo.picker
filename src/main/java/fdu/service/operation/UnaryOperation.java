@@ -3,20 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu.operation;
-
-import fdu.operation.Generator.OperatorVisitor;
+package fdu.service.operation;
 
 /**
  *
  * @author Lu Chang
  */
-public abstract class BinaryOperation extends Operation {
+public abstract class UnaryOperation extends Operation {
     
-    Operation left;
-    Operation right;
+    private Operation left;
 
-    public BinaryOperation(String id, String type, String z) {
+    public UnaryOperation(String id, String type, String z) {
         super(id, type, z);
     }
 
@@ -24,15 +21,7 @@ public abstract class BinaryOperation extends Operation {
         this.left = left;
     }
 
-    public void setRight(Operation right) {
-        this.right = right;
-    }
-
     public Operation getLeft() {
         return left;
-    }
-
-    public Operation getRight() {
-        return right;
     }
 }

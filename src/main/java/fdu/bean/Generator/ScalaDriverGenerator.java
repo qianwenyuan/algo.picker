@@ -1,7 +1,8 @@
-package fdu.operation.Generator;
+package fdu.bean.generator;
 
-import fdu.operation.Operation;
-import fdu.operation.operators.*;
+import fdu.service.operation.Operation;
+import fdu.service.operation.operators.*;
+import org.springframework.context.annotation.Bean;
 
 /**
  * Created by slade on 2016/11/24.

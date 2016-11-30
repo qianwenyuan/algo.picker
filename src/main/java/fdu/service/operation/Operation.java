@@ -3,9 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu.operation;
+package fdu.service.operation;
 
-import fdu.operation.Generator.OperatorVisitor;
+import fdu.bean.generator.OperatorVisitor;
 
 /**
  *

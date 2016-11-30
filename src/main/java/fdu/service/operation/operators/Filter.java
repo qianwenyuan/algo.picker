@@ -3,29 +3,28 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu.operation.operators;
+package fdu.service.operation.operators;
 
-import fdu.operation.BinaryOperation;
-import fdu.operation.Generator.OperatorVisitor;
+import fdu.bean.generator.OperatorVisitor;
+import fdu.service.operation.UnaryOperation;
 import org.json.JSONObject;
 
 /**
  *
  * @author Lu Chang
  */
-public class Join extends BinaryOperation {
+public class Filter extends UnaryOperation {
     private String name;
     private String condition;
 
-    public Join(String id, String type, String z) {
+    public Filter(String id, String type, String z) {
         super(id, type, z);
     }
 
     @Override
     public void accept(OperatorVisitor visitor) {
         getLeft().accept(visitor);
-        getRight().accept(visitor);
-        visitor.visitJoin(this);
+        visitor.visitFilter(this);
     }
 
     public void setName(String name) {
@@ -44,8 +43,8 @@ public class Join extends BinaryOperation {
         return condition;
     }
 
-    public static Join newInstance(JSONObject obj){
-        Join result = new Join(obj.getString("id"), obj.getString("type"), obj.getString("z"));
+    public static Filter newInstance(JSONObject obj){
+        Filter result = new Filter(obj.getString("id"), obj.getString("type"), obj.getString("z"));
         result.setName(obj.getString("name"));
         result.setCondition(obj.getString("condition"));
         return result;
@@ -53,6 +52,6 @@ public class Join extends BinaryOperation {
 
     @Override
     public String toString() {
-        return "([Join : "+ condition +"] " + getLeft() + " " + getRight() + ")";
+        return "([Filter name: " + name + " condition: " + condition  + "]" + getLeft() + ")";
     }
 }

@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package fdu.operation.operators;
+package fdu.service.operation.operators;
 
-import fdu.operation.Generator.OperatorVisitor;
-import fdu.operation.UnaryOperation;
+import fdu.bean.generator.OperatorVisitor;
+import fdu.service.operation.UnaryOperation;
 import org.json.JSONObject;
 
 /**

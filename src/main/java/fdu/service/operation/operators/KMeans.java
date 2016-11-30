@@ -1,7 +1,7 @@
-package fdu.operation.operators;
+package fdu.service.operation.operators;
 
-import fdu.operation.Generator.OperatorVisitor;
-import fdu.operation.UnaryOperation;
+import fdu.bean.generator.OperatorVisitor;
+import fdu.service.operation.UnaryOperation;
 
 /**
  * Created by slade on 2016/11/24.
