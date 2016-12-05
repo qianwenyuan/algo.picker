@@ -62,7 +62,9 @@ public class ShellExecutor {
 
 
     public void init() throws IOException {
-        p = Runtime.getRuntime().exec("/home/sladezhang/spark/bin/spark-shell");
+        String shellPath = System.getProperty("taql.spark.home") + "/bin/spark-shell";
+        System.out.println(shellPath);
+        p = Runtime.getRuntime().exec(shellPath);
         reader = new Reader(p.getInputStream());
         writer = new Writer(p.getOutputStream());
         error = new Reader(p.getErrorStream());
