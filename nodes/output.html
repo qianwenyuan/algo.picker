@@ -1,0 +1,33 @@
+<script type="text/javascript">
+    RED.nodes.registerType('output',{
+        category: 'taql',
+        color: '#83fcd8',
+        defaults: {
+            name: {value:""},
+            dest: {value:"", required:true},
+            strategy: {value:"memory", required: true}
+        },
+        inputs:1,
+        outputs:0,
+        icon: "file.png",
+        label: function() {
+            return this.name||"output";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="output">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name"></br>
+        <label for="node-input-strategy"><i class="icon-tag"></i> Persist Strategy</label>
+        <input type="text" id="node-input-strategy" placeholder="">
+        <label for="node-input-dest"><i class="icon-tag"></i> Dest </label>
+        <input type="text" id="node-input-dest" placeholder="">
+     </div>
+</script>
+
+<script type="text/x-red" data-help-name="output">
+    A output node. 
+</script>
+

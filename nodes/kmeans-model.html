@@ -1,0 +1,36 @@
+<script type="text/javascript">
+    RED.nodes.registerType('kmeans-model',{
+        category: 'taql',
+        color: '#83fcd8',
+        defaults: {
+            name: {value:""},
+	    k: {value:"", required:true},
+	    modelName: {value:"", required:true},
+	    strategy: {value:"memory", required: true}
+        },
+        inputs:1,
+        outputs:0,
+        icon: "file.png",
+        label: function() {
+            return this.name||"kmeans-model";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="kmeans-model">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+        <label for="node-input-k"><i class="icon-tag"></i> K</label>
+        <input type="text" id="node-input-k" placeholder="1,2,3...">
+	<p> Output Modeler </p>
+    	<label for="node-input-modelName"><i class="icon-tag"></i> Model Name </label>
+	<input type="text" id="node-input-modelName" placeholder="">
+	<label for="node-input_strategy"><i class="icon-tag"></i> Persist Strategy </label>
+	<input type="text" id="node-input-strategy"/>
+     </div>
+</script>
+
+<script type="text/x-red" data-help-name="kmeans-model">
+    A k-means model node. 
+</script>
