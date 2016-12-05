@@ -78,6 +78,7 @@ public class ShellExecutor {
         reader.interrupt();
         writer.interrupt();
         error.interrupt();
+        p.destroy();
     }
 
     public String executeCommand(String command) {
