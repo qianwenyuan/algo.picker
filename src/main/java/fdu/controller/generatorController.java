@@ -27,6 +27,7 @@ public class generatorController {
     public String generateDriver(@RequestBody String conf, ScalaDriverGenerator scalaDriverGenerator) throws IOException {
         Operation op = operationParserService.parse(conf);
         op.accept(scalaDriverGenerator);
-        return shellExecutor.executeCommand(scalaDriverGenerator.generate());
+        String program = scalaDriverGenerator.generate();
+        return shellExecutor.executeCommand(program);
     }
 }

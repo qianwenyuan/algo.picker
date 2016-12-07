@@ -37,6 +37,22 @@ public class Project extends UnaryOperation{
         return projections;
     }
 
+    public String getFormatedProjections(){
+        if ("*".equals(projections)){
+            throw new AssertionError("* is not supported yet, you should specify all column name");
+        }
+
+        String[] cols = projections.split(",");
+        StringBuilder result = new StringBuilder(projections.length());
+        for (String col : cols){
+            result.append("\"");
+            result.append(col.trim());
+            result.append("\"");
+            result.append(",");
+        }
+        return result.substring(0, result.length()-1);
+    }
+
     public static Project newInstance(JSONObject obj){
         Project result = new Project(obj.getString("id"), obj.getString("type"), obj.getString("z"));
         result.setName(obj.getString("name"));

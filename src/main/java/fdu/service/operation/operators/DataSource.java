@@ -56,7 +56,7 @@ public class DataSource extends UnaryOperation {
     }
 
     public String toSql(){
-        return name + ((alias == null || alias.length() == 0) ? "" : " as " + alias + " ");
+        return name + (((alias == null || alias.length() == 0) ? "" : (" as " + alias)) + " ");
     }
 }
 

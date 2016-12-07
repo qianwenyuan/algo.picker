@@ -62,7 +62,7 @@ public class ShellExecutor {
 
 
     public void init() throws IOException {
-        String shellPath = System.getProperty("taql.spark.home") + "/bin/spark-shell";
+        String shellPath = System.getProperty("taql.spark.home") + "/bin/spark-shell --master spark://ubuntu1:7077 --jars /home/scidb/taql-hive/spark-interactive-explore.jar,/home/scidb/taql-hive/spark-taql-0.0.2.jar --conf spark.sql.catalogImplementation=hive";
         System.out.println(shellPath);
         p = Runtime.getRuntime().exec(shellPath);
         reader = new Reader(p.getInputStream());
