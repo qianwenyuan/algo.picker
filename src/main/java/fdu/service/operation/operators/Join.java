@@ -5,15 +5,21 @@
  */
 package fdu.service.operation.operators;
 
-import fdu.service.operation.BinaryOperation;
 import fdu.bean.generator.OperatorVisitor;
+import fdu.service.operation.BinaryOperation;
+import fdu.service.operation.CanProduceDataFrame;
+import fdu.service.operation.SqlOperation;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.functions$;
 import org.json.JSONObject;
 
 /**
  *
  * @author Lu Chang
  */
-public class Join extends BinaryOperation {
+public class Join extends BinaryOperation implements SqlOperation {
     private String name;
     private String condition;
 
@@ -54,5 +60,19 @@ public class Join extends BinaryOperation {
     @Override
     public String toString() {
         return "([Join : "+ condition +"] " + getLeft() + " " + getRight() + ")";
+    }
+
+    @Override
+    public String toSql() throws ClassCastException {
+        return ((SqlOperation)getLeft()).toSql() +
+               " JOIN " + ((SqlOperation)getRight()).toSql() +
+               " ON " + getCondition() + " ";
+    }
+
+    @Override
+    public Dataset<Row> execute(SparkSession spark) {
+        return ((CanProduceDataFrame)getLeft()).execute(spark)
+                .join(((CanProduceDataFrame)getRight()).execute(spark),
+                        functions$.MODULE$.expr(condition));
     }
 }

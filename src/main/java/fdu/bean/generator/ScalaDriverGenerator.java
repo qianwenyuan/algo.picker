@@ -1,13 +1,16 @@
 package fdu.bean.generator;
 
+import fdu.bean.service.operation.operators.LDAModel;
+import fdu.bean.service.operation.operators.RandomForestModel;
+import fdu.bean.service.operation.operators.RandomForestPredict;
+import fdu.bean.service.operation.operators.Word2Vec;
 import fdu.service.operation.Operation;
 import fdu.service.operation.operators.*;
-import org.springframework.context.annotation.Bean;
 
 /**
  * Created by slade on 2016/11/24.
  */
-public class ScalaDriverGenerator implements OperatorVisitor {
+public class ScalaDriverGenerator implements OperatorSourceGenerator {
     private String scalaProgram = "";
     private final String importTaqlImplicit = "import org.apache.spark.sql.TAQLImplicits._\n";
     private final String importKmeans = "import org.apache.spark.ml.clustering.KMeans\n";
@@ -44,11 +47,6 @@ public class ScalaDriverGenerator implements OperatorVisitor {
     }
 
     @Override
-    public void visitKMeans(KMeans kmeans) {
-
-    }
-
-    @Override
     public void visitKMeansModel(KMeansModel model) {
         String sql = scalaProgram;
         scalaProgram = "val df1 = spark.taql(\"" + sql + ";\");\n";
@@ -60,7 +58,7 @@ public class ScalaDriverGenerator implements OperatorVisitor {
             throw new AssertionError("a project node is required before kmeans node");
         }
         Project projectNode = (Project) model.getLeft();
-        scalaProgram += "val assembler = new VectorAssembler().setInputCols(Array(" + projectNode.getFormatedProjections() + ")).setOutputCol(\"features\")\n";
+        scalaProgram += "val assembler = new VectorAssembler().setInputCols(Array(" + projectNode.getFormattedProjections() + ")).setOutputCol(\"features\")\n";
         scalaProgram += "val output = assembler.transform(df1)\n";
         scalaProgram += "val output1 = output.select(\"features\")\n";
         scalaProgram += "val model = kmeans.fit(output1);\n";
@@ -72,6 +70,26 @@ public class ScalaDriverGenerator implements OperatorVisitor {
     @Override
     public void visitProject(Project project) {
         scalaProgram = "select " + project.getProjections() + " " + scalaProgram;
+    }
+
+    @Override
+    public void visitRandomForest(RandomForestModel model) {
+        // TODO
+    }
+
+    @Override
+    public void visitRandomForestPredict(RandomForestPredict predict) {
+        // TODO
+    }
+
+    @Override
+    public void visitLDA(LDAModel model) {
+        // TODO
+    }
+
+    @Override
+    public void visitWord2Vec(Word2Vec model) {
+        //TODO
     }
 
     @Override

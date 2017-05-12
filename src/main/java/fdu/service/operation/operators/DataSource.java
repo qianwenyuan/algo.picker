@@ -6,19 +6,28 @@
 package fdu.service.operation.operators;
 
 import fdu.bean.generator.OperatorVisitor;
+import fdu.service.operation.SqlOperation;
 import fdu.service.operation.UnaryOperation;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.json.JSONObject;
 
 /**
  *
  * @author slade
  */
-public class DataSource extends UnaryOperation {
+public class DataSource extends UnaryOperation implements SqlOperation {
     private String name;
     private String alias;
 
     public DataSource(String id, String type, String z) {
         super(id, type, z);
+    }
+
+    @Override
+    public Dataset<Row> execute(SparkSession spark) {
+        return spark.table(name).as(alias);
     }
 
     @Override
@@ -55,8 +64,9 @@ public class DataSource extends UnaryOperation {
         return "([Datasource]: " + name + " as " + alias + ")";
     }
 
+    @Override
     public String toSql(){
-        return name + (((alias == null || alias.length() == 0) ? "" : (" as " + alias)) + " ");
+        return name + (((alias == null || alias.length() == 0) ? "" : (" AS " + alias)) + " ");
     }
 }
 

@@ -1,8 +1,8 @@
 package fdu.controller;
 
+import fdu.bean.executor.ShellExecutor;
 import fdu.bean.generator.ScalaDriverGenerator;
 import fdu.service.OperationParserService;
-import fdu.bean.executor.ShellExecutor;
 import fdu.service.operation.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,15 +16,19 @@ import java.io.IOException;
  * Created by slade on 2016/11/28.
  */
 @RestController
-public class generatorController {
+public class GeneratorController {
+
+    private final OperationParserService operationParserService;
+    private final ShellExecutor shellExecutor;
 
     @Autowired
-    private OperationParserService operationParserService;
-    @Autowired
-    private ShellExecutor shellExecutor;
+    public GeneratorController(OperationParserService operationParserService, ShellExecutor shellExecutor) {
+        this.operationParserService = operationParserService;
+        this.shellExecutor = shellExecutor;
+    }
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
-    public String generateDriver(@RequestBody String conf, ScalaDriverGenerator scalaDriverGenerator) throws IOException {
+    public String generateDriver(@RequestBody String conf, @Autowired ScalaDriverGenerator scalaDriverGenerator) throws IOException {
         Operation op = operationParserService.parse(conf);
         op.accept(scalaDriverGenerator);
         String program = scalaDriverGenerator.generate();

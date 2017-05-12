@@ -5,16 +5,15 @@
  */
 package fdu.service;
 
-import fdu.Conf;
+import fdu.OperationNodeConfiguration;
 import fdu.service.operation.BinaryOperation;
 import fdu.service.operation.Operation;
 import fdu.service.operation.UnaryOperation;
-import fdu.service.operation.operators.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,16 +23,6 @@ import java.util.Map;
 @Service
 public class OperationParserService {
 
-    Map<String, OpType> opTypeMap = new HashMap<>();
-
-    public OperationParserService() throws IOException {
-        opTypeMap.put(Conf.DATASOURCE, OpType.DATASOURCE);
-        opTypeMap.put(Conf.FILTER, OpType.FILTER);
-        opTypeMap.put(Conf.JOIN, OpType.JOIN);
-        opTypeMap.put(Conf.PROJECT, OpType.PROJECT);
-        opTypeMap.put(Conf.KMEANS_MODEL, OpType.KMEANS_MODEL);
-    }
-
     private String confWrapper(String conf) {
         return "{ \"infos\": " + conf + "}";
     }
@@ -41,14 +30,6 @@ public class OperationParserService {
     public Operation parse(String conf) {
         JSONObject confJSON = new JSONObject(confWrapper(conf));
         return parseOperation(confJSON);
-    }
-
-    enum OpType {
-        KMEANS_MODEL,
-        FILTER,
-        JOIN,
-        DATASOURCE,
-        PROJECT
     }
 
     private Operation parseOperation(JSONObject json) {
@@ -71,28 +52,37 @@ public class OperationParserService {
             if (isRoot((JSONObject) obj)) {
                 root = getOperationById(operations, (JSONObject) obj);
             } else {
-                Operation parent = operations.get(((JSONObject) obj).getJSONArray("wires").getJSONArray(0).getString(0));
-                if (parent instanceof UnaryOperation) {
-                    if (((UnaryOperation) parent).getLeft() != null) {
-                        throw new AssertionError("Child already specified.");
-                    } else {
-                        ((UnaryOperation) parent).setLeft(getOperationById(operations, (JSONObject) obj));
-                    }
-                } else if (parent instanceof BinaryOperation) {
-                    if (((BinaryOperation) parent).getLeft() != null && ((BinaryOperation) parent).getRight() != null) {
-                        throw new AssertionError("Both children are specified");
-                    }
+                int parentNum = ((JSONObject) obj).getJSONArray("wires").getJSONArray(0).length();
 
-                    if (((BinaryOperation) parent).getLeft() == null) {
-                        ((BinaryOperation) parent).setLeft(getOperationById(operations, (JSONObject) obj));
-                    } else {
-                        ((BinaryOperation) parent).setRight(getOperationById(operations, (JSONObject) obj));
-                    }
+                for (int i = 0; i < parentNum; i++) {
+                    Operation parent = operations.get(((JSONObject) obj).getJSONArray("wires").getJSONArray(0).getString(i));
+                    setupParents(parent, operations, obj);
                 }
             }
         }
 
         return root;
+    }
+
+    private void setupParents(Operation parent, Map<String, Operation> operations, Object obj) {
+        if (parent instanceof UnaryOperation) {
+            if (((UnaryOperation) parent).getLeft() != null) {
+                throw new AssertionError("Child already specified.");
+            } else {
+                ((UnaryOperation) parent).setLeft(getOperationById(operations, (JSONObject) obj));
+            }
+        } else if (parent instanceof BinaryOperation) {
+            if (((BinaryOperation) parent).getLeft() != null && ((BinaryOperation) parent).getRight() != null) {
+                throw new AssertionError("Both children are specified");
+            }
+
+            if (((BinaryOperation) parent).getLeft() == null) {
+                ((BinaryOperation) parent).setLeft(getOperationById(operations, (JSONObject) obj));
+            } else {
+                ((BinaryOperation) parent).setRight(getOperationById(operations, (JSONObject) obj));
+            }
+
+        }
     }
 
     private Operation getOperationById(Map<String, Operation> operations, JSONObject obj) {
@@ -118,28 +108,14 @@ public class OperationParserService {
         return result;
     }
 
-    //TODO: use reflection instead of string enum mapping.
     private Operation convert(JSONObject obj) {
         Operation result;
-        OpType type = opTypeMap.get(obj.getString("type"));
-        switch (type) {
-            case DATASOURCE:
-                result = DataSource.newInstance(obj);
-                break;
-            case JOIN:
-                result = Join.newInstance(obj);
-                break;
-            case FILTER:
-                result = Filter.newInstance(obj);
-                break;
-            case PROJECT:
-                result = Project.newInstance(obj);
-                break;
-            case KMEANS_MODEL:
-                result = KMeansModel.newInstance(obj);
-                break;
-            default:
-                throw new AssertionError("type " + obj.get("type") + " not exists");
+        Class<?> opClass = OperationNodeConfiguration.opMap.get(obj.getString("type"));
+        try {
+            Method newInstanceMethod = opClass.getMethod("newInstance", JSONObject.class);
+            result = (Operation) newInstanceMethod.invoke(null, obj);
+        } catch (Exception e) {
+            throw new AssertionError("type " + obj.get("type") + " not exists:\n" + e.getMessage());
         }
         return result;
     }
