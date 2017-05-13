@@ -9,6 +9,7 @@ import fdu.service.operation.operators.*;
 /**
  * Created by guoli on 2017/4/5.
  */
+@Deprecated
 public interface OperatorVisitor {
 
     void visitDataSource(DataSource source);

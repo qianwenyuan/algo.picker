@@ -6,47 +6,37 @@
 package fdu.service.operation.operators;
 
 import fdu.bean.generator.OperatorVisitor;
-import fdu.service.operation.CanProduceDataFrame;
+import fdu.service.operation.CanProduce;
 import fdu.service.operation.SqlOperation;
 import fdu.service.operation.UnaryOperation;
+import fdu.util.UserSession;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.json.JSONObject;
+
+import java.util.Objects;
 
 /**
  *
  * @author Lu Chang
  */
 public class Filter extends UnaryOperation implements SqlOperation {
-    private String name;
-    private String condition;
+    private final String condition;
 
-    public Filter(String id, String type, String z) {
-        super(id, type, z);
+    public Filter(String name, String type, String condition) {
+        super(name, type);
+        this.condition = condition;
     }
 
     @Override
-    public Dataset<Row> execute(SparkSession spark) {
-        return ((CanProduceDataFrame)getLeft()).execute(spark).filter(condition);
+    public Dataset<Row> execute(UserSession session) {
+        return ((CanProduce<Dataset<Row>>) getChild()).executeCached(session).filter(condition);
     }
 
     @Override
     public void accept(OperatorVisitor visitor) {
-        getLeft().accept(visitor);
+        getChild().accept(visitor);
         visitor.visitFilter(this);
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public String getCondition() {
@@ -54,24 +44,38 @@ public class Filter extends UnaryOperation implements SqlOperation {
     }
 
     public static Filter newInstance(JSONObject obj){
-        Filter result = new Filter(obj.getString("id"), obj.getString("type"), obj.getString("z"));
-        result.setName(obj.getString("name"));
-        result.setCondition(obj.getString("condition"));
-        return result;
+        return new Filter(
+                obj.getString("name"),
+                obj.getString("type"),
+                obj.getString("condition"));
     }
 
     @Override
     public String toString() {
-        return "([Filter name: " + name + " condition: " + condition  + "]" + getLeft() + ")";
+        return "([Filter name: " + name + " condition: " + condition  + "]" + getChild() + ")";
     }
 
     @Override
     public String toSql() throws ClassCastException {
-        SqlOperation left = (SqlOperation) getLeft();
+        SqlOperation left = (SqlOperation) getChild();
         if (left instanceof DataSource)
-            return  ((SqlOperation)getLeft()).toSql() + " WHERE " + condition;
+            return  ((SqlOperation) getChild()).toSql() + " WHERE " + condition;
         else if (left instanceof Join)
-            return ((SqlOperation)getLeft()).toSql() + " WHERE " + condition;
+            return ((SqlOperation) getChild()).toSql() + " WHERE " + condition;
         else throw new UnsupportedOperationException("Invalid filter node");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Filter filter = (Filter) o;
+        return Objects.equals(condition, filter.condition);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), condition);
     }
 }

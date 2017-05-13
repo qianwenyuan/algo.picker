@@ -3,10 +3,11 @@ package fdu.bean.generator
 import fdu.bean.service.operation.operators.{LDAModel, RandomForestModel, RandomForestPredict, Word2Vec}
 import fdu.service.operation.SqlOperation
 import fdu.service.operation.operators.{DataSource, _}
+import fdu.util.UserSession
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.clustering.LDA
 import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.Dataset
 
 /**
   * This driver generator will always use sql to produce data used by
@@ -16,7 +17,7 @@ import org.apache.spark.sql.{Dataset, SparkSession}
   * Created by Liangchen on 2017/4/5.
   */
 
-class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
+class LocalExecutor(session: UserSession) extends OperatorVisitor {
 
   @deprecated
   private val sql: StringBuilder = StringBuilder.newBuilder
@@ -36,7 +37,7 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
         """.stripMargin
     }
     // spark.sql(sqlOperation.toSql)
-    sqlOperation.execute(spark)
+    sqlOperation.execute(session)
   }
 
   @deprecated
@@ -44,7 +45,7 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
 
   @deprecated
   def visitFilter(filter: Filter): Unit = {
-    filter.getLeft match {
+    filter.getChild match {
       case op if op.isInstanceOf[DataSource] =>
         sql ++= " from " + op.asInstanceOf[DataSource].toSql
         " where " + filter.getCondition + " "
@@ -76,10 +77,10 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
 
     val completeModel =
       try
-        org.apache.spark.ml.clustering.KMeansModel.load(model.getModelName)
+        org.apache.spark.ml.clustering.KMeansModel.load(model.getName)
       catch {
         case _: Any =>
-          val df = fetchDataSet(model.getLeft.asInstanceOf[SqlOperation])
+          val df = fetchDataSet(model.getChild.asInstanceOf[SqlOperation])
           val kMeans = new KMeans().setK(model.getK).setSeed(1L)
           val assembler = new VectorAssembler()
             .setInputCols(df.columns)
@@ -87,7 +88,7 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
           val transformed = assembler.transform(df)
           val output = transformed.select("features")
           val trainedModel = kMeans.fit(output)
-          trainedModel.write.save(model.getModelName)
+          trainedModel.write.save(model.getName)
           trainedModel
       }
     log {
@@ -105,10 +106,10 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
   override def visitRandomForest(model: RandomForestModel): Unit = {
     val completeModel =
       try
-        org.apache.spark.ml.classification.RandomForestClassificationModel.load(model.name)
+        org.apache.spark.ml.classification.RandomForestClassificationModel.load(model.getName)
       catch {
         case _: Any =>
-          val df = fetchDataSet(model.getLeft.asInstanceOf[SqlOperation])
+          val df = fetchDataSet(model.getChild.asInstanceOf[SqlOperation])
 
           val assembler = new VectorAssembler()
             .setInputCols(df.columns.filter(_ != model.labelCol))
@@ -121,7 +122,7 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
             .setFeaturesCol("features")
 
           val trainedModel = rf.fit(transformed)
-          trainedModel.save(model.name)
+          trainedModel.save(model.getName)
           trainedModel
       }
     log {
@@ -165,14 +166,14 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
   override def visitLDA(model: LDAModel): Unit = {
     val completeModel =
       try
-        org.apache.spark.ml.clustering.LocalLDAModel.load(model.name)
+        org.apache.spark.ml.clustering.LocalLDAModel.load(model.getName)
       catch {
         case _: Any =>
           try
-            org.apache.spark.ml.clustering.DistributedLDAModel.load(model.name)
+            org.apache.spark.ml.clustering.DistributedLDAModel.load(model.getName)
           catch {
             case _: Any =>
-              val df = fetchDataSet(model.getLeft.asInstanceOf[SqlOperation])
+              val df = fetchDataSet(model.getChild.asInstanceOf[SqlOperation])
               val assembler = new VectorAssembler()
                 .setInputCols(df.columns)
                 .setOutputCol("features")
@@ -183,7 +184,7 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
                 .setMaxIter(model.numMaxIter)
 
               val trainedModel = lda.fit(transformed)
-              trainedModel.save(model.name)
+              trainedModel.save(model.getName)
               trainedModel
           }
       }
@@ -204,10 +205,10 @@ class LocalExecutor(spark: SparkSession) extends OperatorVisitor {
   override def visitWord2Vec(model: Word2Vec): Unit = {
     val completeModel =
       try
-        org.apache.spark.ml.feature.Word2VecModel.load(model.name)
+        org.apache.spark.ml.feature.Word2VecModel.load(model.getName)
       catch {
         case _: Any =>
-          val df = fetchDataSet(model.getLeft.asInstanceOf[SqlOperation])
+          val df = fetchDataSet(model.getChild.asInstanceOf[SqlOperation])
 
           val word2Vec = new org.apache.spark.ml.feature.Word2Vec()
           .setInputCol(model.wordCol)

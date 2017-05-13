@@ -1,26 +1,24 @@
 package fdu.bean.executor
 
 import java.io.OutputStream
-import java.util.UUID
 
 import fdu.bean.generator.LocalExecutor
+import fdu.util.UserSession
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
 
 import scala.tools.nsc.interpreter.Results
 import scala.util.Properties.{javaVersion, javaVmName, versionString}
 
-class EmbeddedExecutor(val out: OutputStream) {
-
-  val uuid: String = UUID.randomUUID().toString
+class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String = "local[*]") {
 
   lazy val spark: SparkSession = SparkSession
       .builder
-      .appName(uuid.toString)
-      .master("local[*]") // TODO Master can be set dynamically
+      .appName(s"AlgoPicker - Session: ${session.getSessionID}")
+      .master(master)
       .getOrCreate()
 
-  lazy val executor: LocalExecutor = new LocalExecutor(spark)
+  lazy val executor: LocalExecutor = new LocalExecutor(session)
 
   private lazy val repl: IntpREPLRunner = new IntpREPLRunner(out)
 

@@ -66,10 +66,10 @@ public class OperationParserService {
 
     private void setupParents(Operation parent, Map<String, Operation> operations, Object obj) {
         if (parent instanceof UnaryOperation) {
-            if (((UnaryOperation) parent).getLeft() != null) {
+            if (((UnaryOperation) parent).getChild() != null) {
                 throw new AssertionError("Child already specified.");
             } else {
-                ((UnaryOperation) parent).setLeft(getOperationById(operations, (JSONObject) obj));
+                ((UnaryOperation) parent).setChild(getOperationById(operations, (JSONObject) obj));
             }
         } else if (parent instanceof BinaryOperation) {
             if (((BinaryOperation) parent).getLeft() != null && ((BinaryOperation) parent).getRight() != null) {
@@ -103,7 +103,7 @@ public class OperationParserService {
                 continue;
             }
             Operation op = convert((JSONObject) obj);
-            result.put(op.getId(), op);
+            result.put(((JSONObject) obj).getString("id"), op);
         }
         return result;
     }

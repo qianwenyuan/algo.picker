@@ -7,24 +7,26 @@ package fdu.service.operation.operators;
 
 import fdu.bean.generator.OperatorVisitor;
 import fdu.service.operation.BinaryOperation;
-import fdu.service.operation.CanProduceDataFrame;
+import fdu.service.operation.CanProduce;
 import fdu.service.operation.SqlOperation;
+import fdu.util.UserSession;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.functions$;
 import org.json.JSONObject;
+
+import java.util.Objects;
 
 /**
  *
  * @author Lu Chang
  */
 public class Join extends BinaryOperation implements SqlOperation {
-    private String name;
-    private String condition;
+    private final String condition;
 
-    public Join(String id, String type, String z) {
-        super(id, type, z);
+    public Join(String name, String type, String condition) {
+        super(name, type);
+        this.condition = condition;
     }
 
     @Override
@@ -34,27 +36,15 @@ public class Join extends BinaryOperation implements SqlOperation {
         visitor.visitJoin(this);
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-
-    public String getName() {
-        return name;
-    }
-
     public String getCondition() {
         return condition;
     }
 
     public static Join newInstance(JSONObject obj){
-        Join result = new Join(obj.getString("id"), obj.getString("type"), obj.getString("z"));
-        result.setName(obj.getString("name"));
-        result.setCondition(obj.getString("condition"));
-        return result;
+        return new Join(
+                obj.getString("name"),
+                obj.getString("type"),
+                obj.getString("condition"));
     }
 
     @Override
@@ -70,9 +60,23 @@ public class Join extends BinaryOperation implements SqlOperation {
     }
 
     @Override
-    public Dataset<Row> execute(SparkSession spark) {
-        return ((CanProduceDataFrame)getLeft()).execute(spark)
-                .join(((CanProduceDataFrame)getRight()).execute(spark),
+    public Dataset<Row> execute(UserSession session) {
+        return ((CanProduce<Dataset<Row>>)getLeft()).executeCached(session)
+                .join(((CanProduce<Dataset<Row>>)getRight()).executeCached(session),
                         functions$.MODULE$.expr(condition));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Join join = (Join) o;
+        return Objects.equals(condition, join.condition);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), condition);
     }
 }

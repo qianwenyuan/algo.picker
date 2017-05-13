@@ -1,6 +1,7 @@
 package fdu.util;
 
 import fdu.bean.executor.EmbeddedExecutor;
+import org.apache.spark.sql.SparkSession;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -20,6 +21,8 @@ public class UserSession {
     private WebSocketSession resultSession;
     private WebSocketSession logSession;
 
+    private final ResultCache resultCache = new ResultCache();
+
     public UserSession(String sessionID) {
         this.sessionID = sessionID;
     }
@@ -32,12 +35,16 @@ public class UserSession {
         getEmbeddedExecutor();
     }
 
-    public EmbeddedExecutor getEmbeddedExecutor() throws IOException {
+    public EmbeddedExecutor getEmbeddedExecutor() {
         if (embeddedExecutor == null) {
-            embeddedExecutor = new EmbeddedExecutor(getReplOutputStream());
+            embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "local[*]");
             embeddedExecutor.init();
         }
         return embeddedExecutor;
+    }
+
+    public SparkSession getSparkSession() {
+        return getEmbeddedExecutor().spark();
     }
 
     private MessageOutputStream getLogOutputStream() {
@@ -48,12 +55,16 @@ public class UserSession {
         return logOutputStream;
     }
 
-    private MessageOutputStream getReplOutputStream() throws IOException {
+    private MessageOutputStream getReplOutputStream() {
         if (replOutputStream == null)
             replOutputStream = replSession == null ?
                     new MessageOutputStream(System.out) :
                     new MessageOutputStream(replEndPoint);
         return replOutputStream;
+    }
+
+    public ResultCache getResultCache() {
+        return resultCache;
     }
 
     public void destroy() throws IOException {

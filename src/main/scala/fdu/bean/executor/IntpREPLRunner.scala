@@ -33,5 +33,5 @@ class IntpREPLRunner(val out: OutputStream) {
 
   def bind[T: universe.TypeTag : ClassTag](name: String, value: T): Results.Result = repl.bind(name, value)
 
-  def echo(s: String): Unit = out.write(s.toCharArray.map(_.toByte))
+  def echo(s: String): Unit = out.write(s"$s\n".toCharArray.map(_.toByte))
 }

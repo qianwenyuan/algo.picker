@@ -7,6 +7,8 @@ package fdu.service.operation;
 
 import fdu.bean.generator.OperatorVisitor;
 
+import java.util.Objects;
+
 /**
  *
  * @author slade
@@ -14,27 +16,35 @@ import fdu.bean.generator.OperatorVisitor;
  */
 public abstract class Operation {
     
-    private String id;
-    private String type;
-    private String z;
+    protected final String type;
+    protected final String name;
 
-    public Operation(String id, String type, String z) {
-        this.id = id;
+    Operation(String name, String type) {
+        this.name = name;
         this.type = type;
-        this.z = z;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String getType() {
         return type;
     }
 
-    public String getZ() {
-        return z;
+    public String getName() {
+        return name;
     }
 
     public abstract void accept(OperatorVisitor visitor);
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Operation operation = (Operation) o;
+        return Objects.equals(type, operation.type) &&
+                Objects.equals(name, operation.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, name);
+    }
 }

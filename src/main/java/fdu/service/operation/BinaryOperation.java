@@ -5,17 +5,19 @@
  */
 package fdu.service.operation;
 
+import java.util.Objects;
+
 /**
  *
  * @author Lu Chang
  */
 public abstract class BinaryOperation extends Operation {
     
-    Operation left;
-    Operation right;
+    private Operation left;
+    private Operation right;
 
-    public BinaryOperation(String id, String type, String z) {
-        super(id, type, z);
+    public BinaryOperation(String name, String type) {
+        super(name, type);
     }
 
     public void setLeft(Operation left) {
@@ -32,5 +34,20 @@ public abstract class BinaryOperation extends Operation {
 
     public Operation getRight() {
         return right;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        BinaryOperation that = (BinaryOperation) o;
+        return Objects.equals(left, that.left) &&
+                Objects.equals(right, that.right);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), left, right);
     }
 }

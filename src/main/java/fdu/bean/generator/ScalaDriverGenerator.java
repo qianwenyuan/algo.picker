@@ -24,7 +24,7 @@ public class ScalaDriverGenerator implements OperatorSourceGenerator {
 
     @Override
     public void visitFilter(Filter filter) {
-        Operation op = filter.getLeft();
+        Operation op = filter.getChild();
         if (op instanceof DataSource) {
             String alias = ((DataSource) op).getAlias();
             scalaProgram += "from " + ((DataSource) op).toSql() +
@@ -54,17 +54,15 @@ public class ScalaDriverGenerator implements OperatorSourceGenerator {
         scalaProgram += "val kmeans = new KMeans().setK(" + model.getK() + ").setSeed(1L);\n";
         scalaProgram += importVectorAssember;
         scalaProgram += importVectors;
-        if (!(model.getLeft() instanceof Project)) {
+        if (!(model.getChild() instanceof Project)) {
             throw new AssertionError("a project node is required before kmeans node");
         }
-        Project projectNode = (Project) model.getLeft();
+        Project projectNode = (Project) model.getChild();
         scalaProgram += "val assembler = new VectorAssembler().setInputCols(Array(" + projectNode.getFormattedProjections() + ")).setOutputCol(\"features\")\n";
         scalaProgram += "val output = assembler.transform(df1)\n";
         scalaProgram += "val output1 = output.select(\"features\")\n";
         scalaProgram += "val model = kmeans.fit(output1);\n";
-        if ("disk".equals(model.getStrategy())) {
-            scalaProgram += "model.write.save(\"" + model.getModelName() + "\");";
-        }
+        scalaProgram += "model.write.save(\"" + model.getName() + "\");";
     }
 
     @Override

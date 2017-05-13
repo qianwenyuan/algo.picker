@@ -5,23 +5,39 @@
  */
 package fdu.service.operation;
 
+import java.util.Objects;
+
 /**
  *
  * @author Lu Chang
  */
 public abstract class UnaryOperation extends Operation {
-    
-    private Operation left;
 
-    public UnaryOperation(String id, String type, String z) {
-        super(id, type, z);
+    private Operation child;
+
+    public UnaryOperation(String name, String type) {
+        super(name, type);
     }
 
-    public void setLeft(Operation left) {
-        this.left = left;
+    public void setChild(Operation child) {
+        this.child = child;
     }
 
-    public Operation getLeft() {
-        return left;
+    public Operation getChild() {
+        return child;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        UnaryOperation that = (UnaryOperation) o;
+        return Objects.equals(child, that.child);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), child);
     }
 }
