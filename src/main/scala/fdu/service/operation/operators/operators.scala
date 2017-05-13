@@ -1,4 +1,4 @@
-package fdu.bean.service.operation.operators
+package fdu.service.operation.operators
 
 import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation._

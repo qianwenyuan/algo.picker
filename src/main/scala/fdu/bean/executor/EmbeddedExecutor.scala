@@ -2,7 +2,7 @@ package fdu.bean.executor
 
 import java.io.OutputStream
 
-import fdu.bean.generator.LocalExecutor
+import fdu.bean.generator.LocalVisitor
 import fdu.util.UserSession
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
@@ -18,7 +18,7 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
       .master(master)
       .getOrCreate()
 
-  lazy val executor: LocalExecutor = new LocalExecutor(session)
+  lazy val executor: LocalVisitor = new LocalVisitor(session)
 
   private lazy val repl: IntpREPLRunner = new IntpREPLRunner(out)
 

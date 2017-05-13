@@ -1,6 +1,5 @@
 package fdu.bean.generator
 
-import fdu.bean.service.operation.operators.{LDAModel, RandomForestModel, RandomForestPredict, Word2Vec}
 import fdu.service.operation.SqlOperation
 import fdu.service.operation.operators.{DataSource, _}
 import fdu.util.UserSession
@@ -17,7 +16,7 @@ import org.apache.spark.sql.Dataset
   * Created by Liangchen on 2017/4/5.
   */
 
-class LocalExecutor(session: UserSession) extends OperatorVisitor {
+class LocalVisitor(session: UserSession) extends OperatorVisitor {
 
   @deprecated
   private val sql: StringBuilder = StringBuilder.newBuilder

@@ -44,8 +44,8 @@ public class ResultCache {
     }
 
     private void callCacheMethod(Object o) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method resultClass = o.getClass().getMethod("cache");
-        resultClass.invoke(o);
+        Method cacheMethod = o.getClass().getMethod("cache");
+        cacheMethod.invoke(o);
     }
 
     private class CacheEntry {

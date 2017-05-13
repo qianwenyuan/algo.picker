@@ -1,9 +1,5 @@
 package fdu;
 
-import fdu.bean.service.operation.operators.LDAModel;
-import fdu.bean.service.operation.operators.RandomForestModel;
-import fdu.bean.service.operation.operators.RandomForestPredict;
-import fdu.bean.service.operation.operators.Word2Vec;
 import fdu.service.operation.operators.*;
 
 import java.util.HashMap;
