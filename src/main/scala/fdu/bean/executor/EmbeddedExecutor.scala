@@ -44,6 +44,8 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
         StructField("hometown", IntegerType),
         StructField("residence", IntegerType)
       )))
+      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user.csv")
+      // .load("file:/C:/user.csv")
       .load(getClass.getClassLoader.getResource("user.csv").toExternalForm)
     userDf.createOrReplaceTempView("user")
 
@@ -53,6 +55,8 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
         StructField("installTime", IntegerType),
         StructField("appID", IntegerType)
       )))
+      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user_app_actions.csv")
+      // .load("file:/C:/user_app_actions.csv")
       .load(getClass.getClassLoader.getResource("user_app_actions.csv").toExternalForm)
     actionDf.createOrReplaceTempView("action")
   }

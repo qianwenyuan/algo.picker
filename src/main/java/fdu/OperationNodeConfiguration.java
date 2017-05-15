@@ -26,6 +26,7 @@ public class OperationNodeConfiguration {
         put("filter", Filter.class);
         put("kmeans-model", KMeansModel.class);
         // Newly added
+        put("sample", Sample.class);
         put("lda-model", LDAModel.class);
         put("randomforest-model", RandomForestModel.class);
         put("randomforest-predict", RandomForestPredict.class);

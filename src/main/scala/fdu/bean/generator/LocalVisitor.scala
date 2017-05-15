@@ -70,6 +70,7 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
     sql.insert(0, "select " + project.getProjections + " ")
   }
 
+  @deprecated
   def visitKMeansModel(model: KMeansModel): Unit = {
     import org.apache.spark.ml.clustering.KMeans
     import org.apache.spark.ml.feature.VectorAssembler
@@ -102,6 +103,7 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
     }
   }
 
+  @deprecated
   override def visitRandomForest(model: RandomForestModel): Unit = {
     val completeModel =
       try
@@ -162,6 +164,7 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
     result.show()
   }
 
+  @deprecated
   override def visitLDA(model: LDAModel): Unit = {
     val completeModel =
       try
@@ -201,6 +204,7 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
     }
   }
 
+  @deprecated
   override def visitWord2Vec(model: Word2Vec): Unit = {
     val completeModel =
       try

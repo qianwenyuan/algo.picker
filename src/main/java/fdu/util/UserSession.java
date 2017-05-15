@@ -37,6 +37,7 @@ public class UserSession {
 
     public EmbeddedExecutor getEmbeddedExecutor() {
         if (embeddedExecutor == null) {
+            // embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "spark://10.141.211.91:7077");
             embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "local[*]");
             embeddedExecutor.init();
         }

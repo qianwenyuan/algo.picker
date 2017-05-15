@@ -48,7 +48,7 @@ public class OperationParserService {
             if ("tab".equals(((JSONObject) obj).get("type"))) { // skip tab json object
                 continue;
             }
-
+            // TODO: multiple Roots?
             if (isRoot((JSONObject) obj)) {
                 root = getOperationById(operations, (JSONObject) obj);
             } else {

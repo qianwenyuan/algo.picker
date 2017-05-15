@@ -1,5 +1,11 @@
 package fdu.util;
 
+import fdu.service.operation.Operation;
+import org.apache.spark.ml.Model;
+import org.apache.spark.ml.util.MLWritable;
+import org.apache.spark.sql.Dataset;
+
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -10,7 +16,7 @@ import java.util.Map;
  */
 public class ResultCache {
 
-    //  TODO: add LRU cache to save memory
+    //  TODO: Rewrite as LRU cache to save memory
     private final Map<Object, CacheEntry> cacheMap = new HashMap<>();
 
     public <T> T query(Object o) {
@@ -22,9 +28,9 @@ public class ResultCache {
                 if (!resultCache.cached) {
                     try {
                         resultCache.cached = true;
-                        callCacheMethod(resultCache.cachedResult);
-                    } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                        // ignored
+                        callCacheMethod(o, resultCache.cachedResult);
+                    } catch (IOException e) {
+                        e.printStackTrace(); // ignored
                     }
                 }
                 resultCache.usedTimes++;
@@ -43,9 +49,13 @@ public class ResultCache {
         }
     }
 
-    private void callCacheMethod(Object o) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method cacheMethod = o.getClass().getMethod("cache");
-        cacheMethod.invoke(o);
+    private void callCacheMethod(Object node, Object o) throws IOException {
+        Operation op = (Operation) node;
+        if (o instanceof Dataset) {
+            ((Dataset) o).cache();
+        } else if (o instanceof MLWritable) {
+            ((MLWritable) o).save(op.getName());
+        }
     }
 
     private class CacheEntry {

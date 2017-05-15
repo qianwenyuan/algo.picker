@@ -16,9 +16,15 @@ import java.util.Map;
 public class WsHandShakeInterceptor extends HttpSessionHandshakeInterceptor {
 
     @Override
-    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        HttpSession httpSession = ((ServletServerHttpRequest) request).getServletRequest().getSession();
-        UserSession session = UserSessionPool.getInstance().addOrGetUserSession(httpSession.getId());
+    public boolean beforeHandshake(ServerHttpRequest request,
+                                   ServerHttpResponse response,
+                                   WebSocketHandler wsHandler,
+                                   Map<String, Object> attributes) throws Exception {
+        HttpSession httpSession = ((ServletServerHttpRequest) request)
+                .getServletRequest()
+                .getSession();
+        UserSession session = UserSessionPool.getInstance()
+                .addOrGetUserSession(httpSession.getId());
         attributes.put("session", session);
         return super.beforeHandshake(request, response, wsHandler, attributes);
     }

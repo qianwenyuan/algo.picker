@@ -1,9 +1,12 @@
 package fdu.controller;
 
 import fdu.service.OperationParserService;
+import fdu.service.operation.CanProduce;
 import fdu.service.operation.Operation;
 import fdu.util.UserSession;
 import fdu.util.UserSessionPool;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,16 +35,21 @@ public class ExecutorController {
     }
 
     @RequestMapping(value = "/node", method = RequestMethod.POST)
-    public String generateDriver(@RequestBody String conf, @Autowired HttpServletRequest request) throws IOException {
-        Operation op = operationParserService.parse(conf);
-        op.accept(getUserSession(request).getEmbeddedExecutor().executor());
-        return "2333"; // TODO
+    public String generateDriver(@RequestBody String conf, @Autowired HttpServletRequest request) {
+        UserSession userSession = getUserSession(request);
+        new Thread(() -> {
+            Operation op = operationParserService.parse(conf);
+            // TODO
+            Dataset<Row> res = ((CanProduce<Dataset<Row>>)op).executeCached(userSession);
+            res.show();
+        }).start();
+        return "OK";
     }
 
     @RequestMapping(value = "/run", method = RequestMethod.POST)
-    public String executeCommand(@RequestBody String code, @Autowired HttpServletRequest request) throws IOException {
+    public String executeCommand(@RequestBody String code, @Autowired HttpServletRequest request) {
+        UserSession userSession = getUserSession(request);
         new Thread(() -> {
-            UserSession userSession = getUserSession(request);
             try {
                 Object result = userSession.getEmbeddedExecutor().eval(code);
                 userSession.sendResult(result == null ? null : result.toString());
