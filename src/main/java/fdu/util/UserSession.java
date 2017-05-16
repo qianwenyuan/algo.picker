@@ -6,6 +6,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.function.Consumer;
 
 /**
  * Created by guoli on 2017/5/9.
@@ -15,7 +16,6 @@ public class UserSession {
     private final String sessionID;
     private EmbeddedExecutor embeddedExecutor;
     private MessageOutputStream replOutputStream;
-    private MessageOutputStream logOutputStream;
 
     private WebSocketSession replSession;
     private WebSocketSession resultSession;
@@ -48,14 +48,6 @@ public class UserSession {
         return getEmbeddedExecutor().spark();
     }
 
-    private MessageOutputStream getLogOutputStream() {
-        if (logOutputStream == null)
-            logOutputStream = logSession == null ?
-                    new MessageOutputStream(System.out) :
-                    new MessageOutputStream(logEndPoint);
-        return logOutputStream;
-    }
-
     private MessageOutputStream getReplOutputStream() {
         if (replOutputStream == null)
             replOutputStream = replSession == null ?
@@ -76,7 +68,7 @@ public class UserSession {
 
     public void setReplSession(WebSocketSession replSession) throws IOException {
         this.replSession = replSession;
-        getReplOutputStream().setOut(replEndPoint);
+        getReplOutputStream().setOutFunction(replEndPoint);
     }
 
     public void setResultSession(WebSocketSession resultSession) {
@@ -92,29 +84,36 @@ public class UserSession {
     }
 
     public void sendResult(String s) throws IOException {
-        resultEndPoint.sendMessage(s);
+        resultEndPoint.accept(s);
     }
 
-    private final UserEndPoint replEndPoint = new UserEndPoint() {
-        @Override
-        public void sendMessage(String s) throws IOException {
+    public void sendLog(String s) throws IOException {
+        logEndPoint.accept(s);
+    }
+
+    private final UserEndPoint replEndPoint = s -> {
+        try {
             replSession.sendMessage(new TextMessage(s));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     };
 
-    private final UserEndPoint resultEndPoint = new UserEndPoint() {
-        @Override
-        public void sendMessage(String s) throws IOException {
-            if (resultSession != null) {
+    private final UserEndPoint resultEndPoint = s -> {
+        if (resultSession != null) {
+            try {
                 resultSession.sendMessage(new TextMessage(s));
-            } else System.out.print(s);
-        }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else System.out.print(s);
     };
 
-    private final UserEndPoint logEndPoint = new UserEndPoint() {
-        @Override
-        public void sendMessage(String s) throws IOException {
-            logSession.sendMessage(new TextMessage(s));
+    private final UserEndPoint logEndPoint = s -> {
+        try {
+            if (logSession != null) logSession.sendMessage(new TextMessage(s));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     };
 }

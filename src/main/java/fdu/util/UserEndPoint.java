@@ -1,13 +1,9 @@
 package fdu.util;
 
-import java.io.IOException;
+import java.util.function.Consumer;
 
 /**
  * Created by guoli on 2017/5/9.
  */
 @FunctionalInterface
-public interface UserEndPoint {
-
-    void sendMessage(String s) throws IOException;
-
-}
+public interface UserEndPoint extends Consumer<String> {}

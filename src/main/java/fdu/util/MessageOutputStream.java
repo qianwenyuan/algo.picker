@@ -3,46 +3,48 @@ package fdu.util;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by guoli on 2017/5/10.
  */
 public class MessageOutputStream extends OutputStream {
 
-    private UserEndPoint out;
     private OutputStream backup;
+    private Consumer<String> f;
 
-    MessageOutputStream(UserEndPoint out) {
-        this.out = out;
+    MessageOutputStream(Consumer<String> f) {
+        this.f = f;
     }
 
     MessageOutputStream(OutputStream backup) {
         this.backup = backup;
     }
 
-    public void setOut(UserEndPoint out) {
-        this.out = out;
+    public void setOutFunction(Consumer<String> f) {
+        this.f = f;
     }
 
     @Override
     public void write(int b) throws IOException {
-        if (out == null) backup.write(b);
-        else out.sendMessage(Integer.toString(b));
+        if (f == null) backup.write(b);
+        else f.accept(Integer.toString(b));
     }
 
     @Override
     public void write(byte[] b) throws IOException {
-        if (out == null) backup.write(b);
-        else out.sendMessage(new String(b));
+        if (f == null) backup.write(b);
+        else f.accept(new String(b));
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        if (out == null) backup.write(b, off, len);
+        if (f == null) backup.write(b, off, len);
         else {
             StringWriter s = new StringWriter();
             s.write(new String(b), off, len);
-            out.sendMessage(s.toString());
+            f.accept(s.toString());
         }
     }
 }

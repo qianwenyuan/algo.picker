@@ -1,5 +1,6 @@
 package fdu.util;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,10 +42,10 @@ public class UserSessionPool {
         sessionMap.remove(uuid);
     }
 
-//    public void broadcast(String s) throws IOException {
-//        for (Map.Entry<String, UserSession> e: sessionMap.entrySet()) {
-//            e.getValue().logEndPoint.sendMessage(s);
-//        }
-//    }
+    public void broadcastLog(String s) throws IOException {
+        for (Map.Entry<String, UserSession> e: sessionMap.entrySet()) {
+            e.getValue().sendLog(s);
+        }
+    }
 
 }
