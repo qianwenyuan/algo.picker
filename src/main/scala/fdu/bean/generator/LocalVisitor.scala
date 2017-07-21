@@ -15,7 +15,7 @@ import org.apache.spark.sql.Dataset
   *
   * Created by Liangchen on 2017/4/5.
   */
-
+@deprecated
 class LocalVisitor(session: UserSession) extends OperatorVisitor {
 
   @deprecated

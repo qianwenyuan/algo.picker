@@ -37,7 +37,7 @@ public class UserSession {
 
     public EmbeddedExecutor getEmbeddedExecutor() {
         if (embeddedExecutor == null) {
-            // embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "spark://10.141.211.91:7077");
+            /// embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "spark://10.141.211.91:7077");
             embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream(), "local[*]");
             embeddedExecutor.init();
         }
@@ -93,20 +93,19 @@ public class UserSession {
 
     private final UserEndPoint replEndPoint = s -> {
         try {
-            replSession.sendMessage(new TextMessage(s));
+            if (replSession != null) replSession.sendMessage(new TextMessage(s));
         } catch (IOException e) {
             e.printStackTrace();
         }
     };
 
     private final UserEndPoint resultEndPoint = s -> {
-        if (resultSession != null) {
-            try {
-                resultSession.sendMessage(new TextMessage(s));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else System.out.print(s);
+        try {
+            if (resultSession != null) resultSession.sendMessage(new TextMessage(s));
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.print(s);
+        }
     };
 
     private final UserEndPoint logEndPoint = s -> {

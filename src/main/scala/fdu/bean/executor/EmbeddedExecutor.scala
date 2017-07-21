@@ -90,5 +90,21 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
     repl.echo("Type in expressions to have them evaluated.")
   }
 
+  def getTableNames: Array[String] = spark.catalog.listTables().collect().map(_.name)
+
+  def getTableSchemas(tableNames: Array[String]): Array[(String, String)] = tableNames.flatMap {
+    n => getTableSchema(n) match {
+      case Some(schema) => Some(n, schema)
+      case _ => None
+    }
+  }
+
+  private def getTableSchema(tableName: String): Option[String] = {
+    if (spark.catalog.tableExists(tableName))
+      Some(spark.table(tableName).schema.json)
+    else
+      None
+  }
+
   def destroy(): Unit = spark.stop()
 }

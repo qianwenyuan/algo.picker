@@ -51,9 +51,11 @@ public class OperationParserService {
             // TODO: multiple Roots?
             if (isRoot((JSONObject) obj)) {
                 root = getOperationById(operations, (JSONObject) obj);
+                root.setNeedCache();
             } else {
                 int parentNum = ((JSONObject) obj).getJSONArray("wires").getJSONArray(0).length();
-
+                if (parentNum > 1)
+                    operations.get(((JSONObject) obj).getString("id")).setNeedCache();
                 for (int i = 0; i < parentNum; i++) {
                     Operation parent = operations.get(((JSONObject) obj).getJSONArray("wires").getJSONArray(0).getString(i));
                     setupParents(parent, operations, obj);
@@ -90,7 +92,7 @@ public class OperationParserService {
     }
 
     private boolean isRoot(JSONObject obj) {
-        return obj.getJSONArray("wires").length() == 0;
+        return obj.getJSONArray("wires").length() == 0 || obj.getJSONArray("wires").getJSONArray(0).length() == 0;
     }
 
     private Map<String, Operation> convert2Operations(JSONArray infos) {
@@ -115,6 +117,7 @@ public class OperationParserService {
             Method newInstanceMethod = opClass.getMethod("newInstance", JSONObject.class);
             result = (Operation) newInstanceMethod.invoke(null, obj);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new AssertionError("type " + obj.get("type") + " not exists:\n" + e.getMessage());
         }
         return result;

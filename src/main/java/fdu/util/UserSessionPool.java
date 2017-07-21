@@ -20,13 +20,19 @@ public class UserSessionPool {
         return pool;
     }
 
+    private UserSession singleUser;
+
     public UserSession addOrGetUserSession(String sessionId) {
-        UserSession session = sessionMap.get(sessionId);
-        if (session == null) {
-            session = new UserSession(sessionId);
-            pool.addUserSession(session);
+//        UserSession session = sessionMap.get(sessionId);
+//        if (session == null) {
+//            session = new UserSession(sessionId);
+//            pool.addUserSession(session);
+//        }
+        if (singleUser == null) {
+            singleUser = new UserSession("user");
+            pool.addUserSession(singleUser);
         }
-        return session;
+        return singleUser;
     }
 
     public void addUserSession(UserSession session) {

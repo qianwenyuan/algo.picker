@@ -22,6 +22,7 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
         registry.addHandler(replWebSocketHandler(), "/repl")
                 .addHandler(resultWebSocketHandler(), "/result")
                 .addHandler(logWebSocketHandler(), "/log")
+                .setAllowedOrigins("*")
                 .addInterceptors(new WsHandShakeInterceptor());
     }
 

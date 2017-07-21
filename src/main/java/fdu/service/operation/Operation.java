@@ -18,6 +18,7 @@ public abstract class Operation {
     
     protected final String type;
     protected final String name;
+    private transient boolean needCache;
 
     Operation(String name, String type) {
         this.name = name;
@@ -33,6 +34,14 @@ public abstract class Operation {
     }
 
     public abstract void accept(OperatorVisitor visitor);
+
+    public boolean isNeedCache() {
+        return needCache;
+    }
+
+    public void setNeedCache() {
+        this.needCache = true;
+    }
 
     @Override
     public boolean equals(Object o) {

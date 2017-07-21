@@ -47,6 +47,13 @@ public class ResultCache {
         } else {
             cacheMap.get(o).cachedResult = result;
         }
+        if (o instanceof Operation && ((Operation) o).isNeedCache()) {
+            try {
+                callCacheMethod(o, cacheMap.get(o));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void callCacheMethod(Object node, Object o) throws IOException {

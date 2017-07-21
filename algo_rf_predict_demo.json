@@ -1,0 +1,117 @@
+[
+  {
+    "id": "7643ef3a.e5172",
+    "type": "tab",
+    "label": "流程 1"
+  },
+  {
+    "id": "7e7d74e0.575bfc",
+    "type": "data-source",
+    "z": "7643ef3a.e5172",
+    "name": "user",
+    "alias": "user",
+    "x": 87.5,
+    "y": 180,
+    "wires": [
+      [
+        "a4ff24de.c5cec8"
+      ]
+    ]
+  },
+  {
+    "id": "55aee551.19725c",
+    "type": "data-source",
+    "z": "7643ef3a.e5172",
+    "name": "action",
+    "alias": "action",
+    "x": 89.5,
+    "y": 299,
+    "wires": [
+      [
+        "a4ff24de.c5cec8"
+      ]
+    ]
+  },
+  {
+    "id": "a4ff24de.c5cec8",
+    "type": "sql-join",
+    "z": "7643ef3a.e5172",
+    "name": "",
+    "condition": "user.userID = action.userID",
+    "x": 263.5,
+    "y": 179,
+    "wires": [
+      [
+        "c8d2ecf4.e80a8"
+      ]
+    ]
+  },
+  {
+    "id": "c8d2ecf4.e80a8",
+    "type": "project",
+    "z": "7643ef3a.e5172",
+    "name": "",
+    "projections": "age,gender,education,marriageStatus,haveBaby,hometown,residence,installTime,appID",
+    "x": 268.5,
+    "y": 304,
+    "wires": [
+      [
+        "94d1caf6.0069d8",
+        "f682e947.c62858"
+      ]
+    ]
+  },
+  {
+    "id": "94d1caf6.0069d8",
+    "type": "randomforest-model",
+    "z": "7643ef3a.e5172",
+    "name": "rf",
+    "numTrees": "5",
+    "labelCol": "gender",
+    "x": 449.5,
+    "y": 173,
+    "wires": [
+      [
+        "ecd3684c.c7a638"
+      ]
+    ]
+  },
+  {
+    "id": "ecd3684c.c7a638",
+    "type": "randomforest-predict",
+    "z": "7643ef3a.e5172",
+    "name": "rf-predict",
+    "x": 732.5,
+    "y": 218,
+    "wires": []
+  },
+  {
+    "id": "f682e947.c62858",
+    "type": "sample",
+    "withReplacement": false,
+    "fraction": 0.1,
+    "z": "7643ef3a.e5172",
+    "name": "",
+    "x": 450.5,
+    "y": 304,
+    "wires": [
+      [
+        "c8c19980.0003f8"
+      ]
+    ]
+  },
+  {
+    "id": "c8c19980.0003f8",
+    "type": "filter",
+    "z": "7643ef3a.e5172",
+    "name": "",
+    "condition": "age > 10",
+    "x": 600.5,
+    "y": 302,
+    "wires": [
+      [
+        "ecd3684c.c7a638"
+      ]
+    ]
+  }
+]

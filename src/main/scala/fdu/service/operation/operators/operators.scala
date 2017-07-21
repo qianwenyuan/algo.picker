@@ -110,7 +110,7 @@ class RandomForestModel(name: String,
                         @BeanProperty val labelCol: String)
   extends UnaryOperation(name, _type)
     with CanProduce[Model[classification.RandomForestClassificationModel]] {
-
+  override def isNeedCache: Boolean = true
   override def accept(visitor: OperatorVisitor): Unit = {
     getChild.accept(visitor)
     visitor.visitRandomForest(this)
