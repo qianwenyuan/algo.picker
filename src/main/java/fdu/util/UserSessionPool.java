@@ -9,30 +9,53 @@ import java.util.Map;
  */
 public class UserSessionPool {
 
+    public static final boolean SINGLE_USER = true;
     private static UserSessionPool pool;
 
     private Map<String, UserSession> sessionMap = new HashMap<>();
+    private UserSession singleUser;
 
-    public static UserSessionPool getInstance() {
+    private UserSessionPool() throws IOException {}
+
+    public static UserSessionPool getInstance() throws IOException {
         if (pool == null) {
             pool = new UserSessionPool();
+            if (SINGLE_USER) {
+                // Individual thread for spark initiation
+                // DO NOT Block Spring Boot
+                new Thread(() -> {
+                    try {
+                        pool.getSingleUser();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+            }
         }
         return pool;
     }
 
-    private UserSession singleUser;
-
-    public UserSession addOrGetUserSession(String sessionId) {
-//        UserSession session = sessionMap.get(sessionId);
-//        if (session == null) {
-//            session = new UserSession(sessionId);
-//            pool.addUserSession(session);
-//        }
+    private synchronized UserSession getSingleUser() throws IOException {
         if (singleUser == null) {
             singleUser = new UserSession("user");
-            pool.addUserSession(singleUser);
+            this.addUserSession(singleUser);
+            singleUser.initEmbeddedExecutor();
         }
         return singleUser;
+    }
+
+    public UserSession addOrGetUserSession(String sessionId) throws IOException {
+        if (SINGLE_USER) {
+            return getSingleUser();
+        } else {
+            UserSession session = sessionMap.get(sessionId);
+            if (session == null) {
+                session = new UserSession(sessionId);
+                pool.addUserSession(session);
+                session.initEmbeddedExecutor();
+            }
+            return session;
+        }
     }
 
     public void addUserSession(UserSession session) {

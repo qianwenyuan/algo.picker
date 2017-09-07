@@ -27,16 +27,20 @@ public class OperationParserService {
         return "{ \"infos\": " + conf + "}";
     }
 
-    public Operation parse(String conf) {
+    public Job parse(String conf) {
         JSONObject confJSON = new JSONObject(confWrapper(conf));
         return parseOperation(confJSON);
     }
 
-    private Operation parseOperation(JSONObject json) {
-        JSONArray infos = (JSONArray) json.get("infos");
-        Map<String, Operation> operations = convert2Operations(infos);
+    private Job parseOperation(JSONObject json) {
+        JSONObject infos = (JSONObject) json.get("infos");
+        String jid = infos.getString("jid");
+        String table = infos.getString("table");
+        JSONArray data = infos.getJSONArray("data");
+        Map<String, Operation> operations = convert2Operations(data);
 
-        return constructOpTree(infos, operations);
+        Operation op = constructOpTree(data, operations);
+        return new Job(jid, table, op);
     }
 
     private Operation constructOpTree(JSONArray infos, Map<String, Operation> operations) {

@@ -1,11 +1,15 @@
 package fdu.controller;
 
+import fdu.Config;
+import fdu.service.Job;
 import fdu.service.OperationParserService;
 import fdu.service.operation.CanProduce;
 import fdu.service.operation.Operation;
 import fdu.util.ResultSerialization;
 import fdu.util.UserSession;
 import fdu.util.UserSessionPool;
+import org.apache.hadoop.hdfs.DFSClient;
+import org.apache.spark.sql.DataFrameNaFunctions;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.json.JSONArray;
@@ -36,19 +40,23 @@ public class ExecutorController {
 
     }
 
-    private UserSession getUserSession(HttpServletRequest request) {
+    private UserSession getUserSession(HttpServletRequest request) throws IOException {
         return UserSessionPool.getInstance().addOrGetUserSession(request.getSession().getId());
     }
 
     @RequestMapping(value = "/node", method = RequestMethod.POST)
-    public String generateDriver(@RequestBody String conf, @Autowired HttpServletRequest request) {
+    public String generateDriver(@RequestBody String conf, @Autowired HttpServletRequest request) throws IOException {
         UserSession userSession = getUserSession(request);
+        Config.setAddress(request.getRemoteAddr());
         new Thread(() -> {
             long start = System.currentTimeMillis();
-            Operation op = operationParserService.parse(conf);
-            Object res = ((CanProduce<Dataset<Row>>) op).executeCached(userSession);
+            Job job = operationParserService.parse(conf);
+            Object res = ((CanProduce<Dataset<Row>>) job.getRootOperation()).executeCached(userSession);
+            if (res != null) {
+                ((Dataset) res).write().saveAsTable(job.getTable());
+            }
             try {
-                userSession.sendResult(ResultSerialization.toString(res));
+                userSession.sendResult(Config.getAddress(), job.getJid(), ResultSerialization.toString(res));
                 System.out.println(ResultSerialization.toString(res));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -58,28 +66,29 @@ public class ExecutorController {
         return "OK";
     }
 
+    @Deprecated
     @RequestMapping(value = "/run", method = RequestMethod.POST)
-    public String executeCommand(@RequestBody String code, @Autowired HttpServletRequest request) {
+    public String executeCommand(@RequestBody String code, @Autowired HttpServletRequest request) throws IOException {
         UserSession userSession = getUserSession(request);
         new Thread(() -> {
-            try {
-                Object result = userSession.getEmbeddedExecutor().eval(code);
-                userSession.sendResult(result == null ? null : result.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                Object result = userSession.getEmbeddedExecutor().eval(code);
+//                userSession.sendResult(result == null ? null : result.toString());
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
         }).start();
         return "OK";
     }
 
     @RequestMapping(value = "/tables", method = RequestMethod.GET)
-    public String getTables(@Autowired HttpServletRequest request) {
+    public String getTables(@Autowired HttpServletRequest request) throws IOException {
         UserSession userSession = getUserSession(request);
         return new JSONArray(userSession.getEmbeddedExecutor().getTableNames()).toString();
     }
 
     @RequestMapping(value = "/schemas", method = RequestMethod.POST)
-    public String getTableMeta(@RequestBody String tableNames, @Autowired HttpServletRequest request) {
+    public String getTableMeta(@RequestBody String tableNames, @Autowired HttpServletRequest request) throws IOException {
         UserSession userSession = getUserSession(request);
         JSONArray array = new JSONArray(tableNames);
         List<String> list = new ArrayList<>();

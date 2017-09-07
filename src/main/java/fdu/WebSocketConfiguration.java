@@ -19,7 +19,7 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(replWebSocketHandler(), "/repl")
+        registry// .addHandler(replWebSocketHandler(), "/repl")
                 .addHandler(resultWebSocketHandler(), "/result")
                 .addHandler(logWebSocketHandler(), "/log")
                 .setAllowedOrigins("*")

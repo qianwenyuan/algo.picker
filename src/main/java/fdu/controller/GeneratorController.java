@@ -29,7 +29,7 @@ public class GeneratorController {
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public String generateDriver(@RequestBody String conf, @Autowired ScalaDriverGenerator scalaDriverGenerator) throws IOException {
-        Operation op = operationParserService.parse(conf);
+        Operation op = operationParserService.parse(conf).getRootOperation();
         op.accept(scalaDriverGenerator);
         String program = scalaDriverGenerator.generate();
         return shellExecutor.executeCommand(program);

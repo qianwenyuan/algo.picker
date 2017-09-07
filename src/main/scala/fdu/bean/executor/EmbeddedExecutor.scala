@@ -4,78 +4,94 @@ import java.io.OutputStream
 
 import fdu.bean.generator.LocalVisitor
 import fdu.util.UserSession
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, SparkSession}
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
 
 import scala.tools.nsc.interpreter.Results
 import scala.util.Properties.{javaVersion, javaVmName, versionString}
 
-class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String = "local[*]") {
+class EmbeddedExecutor(session: UserSession, out: OutputStream) {
 
-  lazy val spark: SparkSession = SparkSession
+  val spark: SparkSession = SparkSession
       .builder
       .appName(s"AlgoPicker - Session: ${session.getSessionID}")
-      .master(master)
+      .enableHiveSupport()
       .getOrCreate()
 
   lazy val executor: LocalVisitor = new LocalVisitor(session)
 
-  private lazy val repl: IntpREPLRunner = new IntpREPLRunner(out)
+  private lazy val repl: IntpREPLRunner = {
+    val r = new IntpREPLRunner(out)
+    initRepl(r)
+    r
+  }
 
   def executeCommand(s: String): Results.Result = repl.execute(s)
 
   def eval(s: String): AnyRef = repl.eval(s)
 
   def init(): Unit = {
-    initRepl()
     initData()
   }
 
   private def initData(): Unit = {
-    // Add data source for demo
-    val userDf = spark.read.format("CSV").option("header", "true")
-      .schema(StructType(List(
-        StructField("userID", IntegerType),
-        StructField("age", IntegerType),
-        StructField("gender", IntegerType),
-        StructField("education", IntegerType),
-        StructField("marriageStatus", IntegerType),
-        StructField("haveBaby", IntegerType),
-        StructField("hometown", IntegerType),
-        StructField("residence", IntegerType)
-      )))
-      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user.csv")
-      .load("file:/C:/user.csv")
-      // .load(getClass.getClassLoader.getResource("user.csv").toExternalForm)
-    userDf.createOrReplaceTempView("user")
-
-    val actionDf = spark.read.format("CSV").option("header", "true")
-      .schema(StructType(List(
-        StructField("userID", IntegerType),
-        StructField("installTime", IntegerType),
-        StructField("appID", IntegerType)
-      )))
-      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user_app_actions.csv")
-      .load("file:/C:/user_app_actions.csv")
-      // .load(getClass.getClassLoader.getResource("user_app_actions.csv").toExternalForm)
-    actionDf.createOrReplaceTempView("action")
+// // Add data source for demo
+//    val userDf = spark.read.format("CSV").option("header", "true")
+//      .schema(StructType(List(
+//        StructField("userID", IntegerType),
+//        StructField("age", IntegerType),
+//        StructField("gender", IntegerType),
+//        StructField("education", IntegerType),
+//        StructField("marriageStatus", IntegerType),
+//        StructField("haveBaby", IntegerType),
+//        StructField("hometown", IntegerType),
+//        StructField("residence", IntegerType)
+//      )))
+//      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user.csv")
+//      .load("/mnt/c/user.csv")
+//      // .load(getClass.getClassLoader.getResource("user.csv").toExternalForm)
+//    userDf.createOrReplaceTempView("user_view")
+//
+//    val actionDf = spark.read.format("CSV").option("header", "true")
+//      .schema(StructType(List(
+//        StructField("userID", IntegerType),
+//        StructField("installTime", IntegerType),
+//        StructField("appID", IntegerType)
+//      )))
+//      // .load("hdfs://10.141.211.91:9000/user/scidb/liangchg/user_app_actions.csv")
+//      .load("/mnt/c/user_app_actions.csv")
+//      // .load(getClass.getClassLoader.getResource("user_app_actions.csv").toExternalForm)
+//    actionDf.createOrReplaceTempView("action_view")
+//
+//    // Hive test
+//    import spark.sql
+//     sql("create table user as select * from user_view")
+//     sql("create table action as select * from action_view")
+    // sql("SELECT * FROM user").show()
   }
 
-  private def initRepl(): Unit = {
+  import org.apache.spark.sql.Dataset
+  implicit class REPLDataFrame[T](ds: Dataset[T]) {
+    def show(): Unit = {
+      ds.show()
+    }
+  }
+
+  private def initRepl(repl : IntpREPLRunner): Unit = {
     repl.bind("spark", spark)
     repl.bind("sc", spark.sparkContext)
-    repl.execute("import org.apache.spark.SparkContext._")
-    repl.execute("import spark.implicits._")
-    repl.execute("import spark.sql")
-    repl.execute("import org.apache.spark.sql.functions._")
-    printWelcome()
-    // repl.bind("_printStream", new PrintStream(out))
-    // repl.execute("System.setOut(_printStream)")
-    // repl.execute("Console.setOut(_printStream)")
+    printWelcome(repl)
+    repl.execute(
+      """
+        |import org.apache.spark.SparkContext._
+        |import spark.implicits._
+        |import spark.sql
+        |import org.apache.spark.sql.functions._
+      """.stripMargin)
   }
 
   /** Print a welcome message */
-  def printWelcome() {
+  def printWelcome(repl : IntpREPLRunner) {
     import org.apache.spark.SPARK_VERSION
     repl.echo("""Welcome to
       ____              __
@@ -92,7 +108,7 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
 
   def getTableNames: Array[String] = spark.catalog.listTables().collect().map(_.name)
 
-  def getTableSchemas(tableNames: Array[String]): Array[(String, String)] = tableNames.flatMap {
+  def getTableSchemas(tableNames: Array[String]): Array[(String, String)] = tableNames.filter(_.length > 0).flatMap {
     n => getTableSchema(n) match {
       case Some(schema) => Some(n, schema)
       case _ => None
@@ -100,10 +116,9 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream, master: String =
   }
 
   private def getTableSchema(tableName: String): Option[String] = {
-    if (spark.catalog.tableExists(tableName))
+    if (spark.catalog.listTables().collect().map(_.name).contains(tableName))
       Some(spark.table(tableName).schema.json)
-    else
-      None
+    else None
   }
 
   def destroy(): Unit = spark.stop()
