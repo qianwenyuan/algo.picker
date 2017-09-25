@@ -45,7 +45,8 @@ public class OperationParserService {
 
     private Operation constructOpTree(JSONArray infos, Map<String, Operation> operations) {
         Operation root = null;
-        for (Object obj : infos) {
+        for (int n = 0; n < infos.length(); n++) {
+            Object obj = infos.get(n);
             if (!(obj instanceof JSONObject)) {
                 throw new AssertionError("converting fails: obj is of type " + obj.getClass().getName() + " instead of " + JSONObject.class.getName());
             }
@@ -66,7 +67,6 @@ public class OperationParserService {
                 }
             }
         }
-
         return root;
     }
 
@@ -101,7 +101,8 @@ public class OperationParserService {
 
     private Map<String, Operation> convert2Operations(JSONArray infos) {
         Map<String, Operation> result = new HashMap<>();
-        for (Object obj : infos) {
+        for (int i = 0; i < infos.length(); i++) {
+            Object obj = infos.get(i);
             if (!(obj instanceof JSONObject)) {
                 throw new AssertionError("converting fails: obj is of type " + obj.getClass().getName() + " instead of " + JSONObject.class.getName());
             }

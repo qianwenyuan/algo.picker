@@ -1,7 +1,6 @@
 package fdu.bean.generator
 
-import fdu.service.operation.SqlOperation
-import fdu.service.operation.operators.{DataSource, _}
+import fdu.service.operation.operators.{DataSource, SqlOperation, _}
 import fdu.util.UserSession
 import org.apache.spark.ml.classification.RandomForestClassifier
 import org.apache.spark.ml.clustering.LDA

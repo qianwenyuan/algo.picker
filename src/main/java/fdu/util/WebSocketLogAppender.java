@@ -8,11 +8,14 @@ import java.io.OutputStream;
 
 public class WebSocketLogAppender extends WriterAppender {
 
-    private static OutputStream out = new MessageOutputStream(s -> {
-        try {
-            UserSessionPool.getInstance().broadcastLog(s);
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static OutputStream out = new MessageOutputStream(new UserEndPoint<String>() {
+        @Override
+        public void accept(String s) {
+            try {
+                UserSessionPool.getInstance().broadcastLog(s);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     });
 

@@ -3,7 +3,7 @@ package fdu.service.operation.operators
 import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation._
 import fdu.util.UserSession
-import org.apache.spark.ml.{Model, classification, clustering, feature}
+import org.apache.spark.ml._
 import org.apache.spark.sql.DataFrame
 import org.json.JSONObject
 
@@ -104,6 +104,40 @@ object KMeansModel extends CanGenFromJson {
       obj.getInt("k"))
 }
 
+class VectorAssembler(name: String,
+                      _type: String,
+                      @BeanProperty val columns: String,
+                      @BeanProperty val outputCol: String)
+  extends UnaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def execute(user: UserSession): DataFrame = {
+    val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+    val asm = new feature.VectorAssembler()
+      .setInputCols(columns.split(",").map(_.trim))
+      .setOutputCol(outputCol)
+    asm.transform(df)
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: VectorAssembler =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        columns == that.columns &&
+        outputCol == that.outputCol
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[VectorAssembler]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), columns, outputCol)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
 class RandomForestModel(name: String,
                         _type: String,
                         @BeanProperty val numTrees: Int,
@@ -139,17 +173,12 @@ class RandomForestModel(name: String,
       case _: Any =>
         val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
 
-        val assembler = new feature.VectorAssembler()
-          .setInputCols(df.columns.filter(_ != labelCol))
-          .setOutputCol("features")
-        val transformed = assembler.transform(df)
-
         val rf = new classification.RandomForestClassifier()
           .setNumTrees(numTrees)
           .setLabelCol(labelCol)
           .setFeaturesCol("features")
 
-        val trainedModel = rf.fit(transformed)
+        val trainedModel = rf.fit(df)
         trainedModel
     }
   }
@@ -190,11 +219,7 @@ class RandomForestPredict(name: String,
             t.executeCached(session))
       }
 
-    val assembler = new feature.VectorAssembler()
-      .setInputCols(table.columns)
-      .setOutputCol("features")
-    val transformed = assembler.transform(table)
-    model.transform(transformed)
+    model.transform(table)
   }
 
 }
@@ -205,6 +230,144 @@ object RandomForestPredict extends CanGenFromJson {
       name = obj.getString("name"),
       _type = obj.getString("type")
     )
+}
+
+class LogisticRegressionModel(name: String,
+                              _type: String,
+                              @BeanProperty val labelCol: String,
+                              @BeanProperty val numMaxIter: Int)
+  extends UnaryOperation(name, _type)
+    with CanProduce[Model[classification.LogisticRegressionModel]] {
+
+  override def execute(user: UserSession): classification.LogisticRegressionModel = {
+    try
+      classification.LogisticRegressionModel.load(getName)
+    catch {
+      case _: Any =>
+        val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+        val lr = new classification.LogisticRegression()
+          .setLabelCol(labelCol)
+          .setFeaturesCol("features")
+          .setMaxIter(numMaxIter)
+
+        val trainedModel = lr.fit(df)
+        trainedModel
+    }
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: LogisticRegressionModel =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        labelCol == that.labelCol &&
+        numMaxIter == that.numMaxIter
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[LogisticRegressionModel]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), labelCol, numMaxIter)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object LogisticRegressionModel extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new LogisticRegressionModel(
+      name = obj.getString("name"),
+      labelCol = obj.getString("labelCol"),
+      numMaxIter = obj.getInt("numMaxIter"),
+      _type = obj.getString("type")
+    )
+}
+
+class LogisticRegressionPredict(name: String,
+                                _type: String)
+  extends BinaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+
+  override def execute(session: UserSession): DataFrame = {
+    val (model, table) =
+      getLeft match {
+        case m: LogisticRegressionModel =>
+          (m.executeCached(session),
+            getRight.asInstanceOf[CanProduce[DataFrame]].executeCached(session))
+        case t: CanProduce[DataFrame] =>
+          (getRight.asInstanceOf[CanProduce[Model[classification.LogisticRegressionModel]]].executeCached(session),
+            t.executeCached(session))
+      }
+
+    model.transform(table)
+  }
+
+}
+
+object LogisticRegressionPredict extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new LogisticRegressionPredict(
+      name = obj.getString("name"),
+      _type = obj.getString("type")
+    )
+}
+
+class OneHotEncoder(name: String,
+                    _type: String,
+                    @BeanProperty val features: String)
+  extends UnaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def execute(user: UserSession): DataFrame = {
+    val child = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+    val featureArray = features.split(",").map(_.trim)
+    val colList = scala.collection.mutable.ListBuffer.empty[String]
+
+    val encoders = featureArray.map(s => {
+      val colName = s"$s-encoded"
+      colList += colName
+      new feature.OneHotEncoder()
+        .setInputCol(s)
+        .setOutputCol(colName)
+    })
+    // .foldLeft(child)((table, encoder) => encoder.transform(table))
+    val pipeline = new Pipeline().setStages(encoders)
+    val encoded = pipeline.fit(child).transform(child)
+    val colArray = colList.toArray
+    val assembler = new feature.VectorAssembler()
+      .setInputCols(colArray)
+      .setOutputCol("features")
+    val result = assembler.transform(encoded)
+    colList.foldLeft(result)((tbl, colName) => tbl.drop(colName))
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: OneHotEncoder =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        features == that.features
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[OneHotEncoder]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), features)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object OneHotEncoder extends CanGenFromJson {
+  override def newInstance(obj: JSONObject) = new OneHotEncoder(
+    name = obj.getString("name"),
+    _type = obj.getString("type"),
+    features = obj.getString("features")
+  )
 }
 
 class LDAModel(name: String,

@@ -3,8 +3,6 @@ package fdu.util;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by guoli on 2017/5/10.
@@ -12,9 +10,9 @@ import java.util.function.Function;
 public class MessageOutputStream extends OutputStream {
 
     private OutputStream backup;
-    private Consumer<String> f;
+    private UserEndPoint<String> f;
 
-    MessageOutputStream(Consumer<String> f) {
+    MessageOutputStream(UserEndPoint<String> f) {
         this.f = f;
     }
 
@@ -22,7 +20,7 @@ public class MessageOutputStream extends OutputStream {
         this.backup = backup;
     }
 
-    public void setOutFunction(Consumer<String> f) {
+    public void setOutFunction(UserEndPoint<String> f) {
         this.f = f;
     }
 

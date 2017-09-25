@@ -31,6 +31,10 @@ public class OperationNodeConfiguration {
         put("randomforest-model", RandomForestModel.class);
         put("randomforest-predict", RandomForestPredict.class);
         put("word2vec", Word2Vec.class);
+        put("lr-model", LogisticRegressionModel.class);
+        put("lr-predict", LogisticRegressionPredict.class);
+        put("onehot", OneHotEncoder.class);
+        put("vector-asm", VectorAssembler.class);
     }};
 
 }

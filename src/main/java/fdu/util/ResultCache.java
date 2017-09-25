@@ -1,13 +1,10 @@
 package fdu.util;
 
 import fdu.service.operation.Operation;
-import org.apache.spark.ml.Model;
 import org.apache.spark.ml.util.MLWritable;
 import org.apache.spark.sql.Dataset;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,13 +19,13 @@ public class ResultCache {
     public <T> T query(Object o) {
         CacheEntry resultCache = cacheMap.get(o);
         if (resultCache == null) {
-            cacheMap.put(o, new CacheEntry());
+            return null;
         } else {
             if (resultCache.cachedResult != null) {
                 if (!resultCache.cached) {
                     try {
-                        resultCache.cached = true;
                         callCacheMethod(o, resultCache.cachedResult);
+                        resultCache.cached = true;
                     } catch (IOException e) {
                         e.printStackTrace(); // ignored
                     }
@@ -41,12 +38,7 @@ public class ResultCache {
     }
 
     public <T> void commit(Object o, T result) {
-        if (cacheMap.containsKey(o)) {
-            // re-commit
-            cacheMap.put(o, new CacheEntry(result));
-        } else {
-            cacheMap.get(o).cachedResult = result;
-        }
+        cacheMap.put(o, new CacheEntry(result));
         if (o instanceof Operation && ((Operation) o).isNeedCache()) {
             try {
                 callCacheMethod(o, cacheMap.get(o));
@@ -69,8 +61,6 @@ public class ResultCache {
         int usedTimes = 1;
         boolean cached;
         Object cachedResult;
-
-        CacheEntry() {}
 
         CacheEntry(Object cachedResult) {
             this.cachedResult = cachedResult;

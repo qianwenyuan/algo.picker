@@ -3,7 +3,6 @@ package fdu;
 import fdu.service.LogWebSocketHandler;
 import fdu.service.ReplWebSocketHandler;
 import fdu.service.ResultWebSocketHandler;
-import fdu.util.WsHandShakeInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -19,11 +18,12 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry// .addHandler(replWebSocketHandler(), "/repl")
-                .addHandler(resultWebSocketHandler(), "/result")
-                .addHandler(logWebSocketHandler(), "/log")
-                .setAllowedOrigins("*")
-                .addInterceptors(new WsHandShakeInterceptor());
+        // Experimental WebSocket support
+//        registry.addHandler(replWebSocketHandler(), "/repl")
+//                .addHandler(resultWebSocketHandler(), "/result")
+//                .addHandler(logWebSocketHandler(), "/log")
+//                .setAllowedOrigins("*")
+//                .addInterceptors(new WsHandShakeInterceptor());
     }
 
     @Bean

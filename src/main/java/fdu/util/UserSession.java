@@ -2,13 +2,12 @@ package fdu.util;
 
 import fdu.Config;
 import fdu.bean.executor.EmbeddedExecutor;
+import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.SparkSession;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -45,13 +44,16 @@ public class UserSession {
         getEmbeddedExecutor();
     }
 
-    public EmbeddedExecutor getEmbeddedExecutor() {
-        if (embeddedExecutor == null) {
-            embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream());
-            embeddedExecutor.init();
+    private final UserEndPoint replEndPoint = new UserEndPoint<String>() {
+        @Override
+        public void accept(String s) {
+            try {
+                if (replSession != null) replSession.sendMessage(new TextMessage(s));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        return embeddedExecutor;
-    }
+    };
 
     public SparkSession getSparkSession() {
         return getEmbeddedExecutor().spark();
@@ -92,6 +94,15 @@ public class UserSession {
         getEmbeddedExecutor().executeCommand(s);
     }
 
+    public EmbeddedExecutor getEmbeddedExecutor() {
+        if (embeddedExecutor == null) {
+            embeddedExecutor = new EmbeddedExecutor(this, getReplOutputStream());
+            System.out.println("Init EmbeddedExecutor");
+            embeddedExecutor.init();
+        }
+        return embeddedExecutor;
+    }
+
     private StringJoiner generateFormData(Map<String, String> arguments) throws UnsupportedEncodingException {
         StringJoiner sj = new StringJoiner("&");
         for (Map.Entry<String, String> entry : arguments.entrySet())
@@ -111,6 +122,14 @@ public class UserSession {
         makePost(url, sj.toString(), true);
     }
 
+    private String joinString(List<String> stringList) {
+        StringBuilder buf = new StringBuilder();
+        for (String s : stringList) {
+            buf.append(s);
+        }
+        return buf.toString();
+    }
+
     private void scheduleLog() throws MalformedURLException {
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -122,7 +141,7 @@ public class UserSession {
                     logQueue.drainTo(buffer);
                     if (!buffer.isEmpty()) {
                         Map<String, String> arguments = new HashMap<>();
-                        arguments.put("data", String.join("", buffer));
+                        arguments.put("data", joinString(buffer));
                         StringJoiner sj = generateFormData(arguments);
 
                         makePost(url, sj.toString(), false);
@@ -135,51 +154,89 @@ public class UserSession {
     }
 
     void sendLog(String s) throws IOException {
+        if (StringUtils.countMatches(s, "\n") > 1) {
+            return;
+        }
         logQueue.offer(s);
     }
 
-    private void makePost(URL url, String content, boolean isForm) throws IOException {
-        System.out.println("POSTing to " + url);
-        URLConnection con = url.openConnection();
-        HttpURLConnection http = (HttpURLConnection) con;
-        http.setRequestMethod("POST"); // PUT is another valid option
-        http.setDoOutput(true);
-
-        byte[] out = content.getBytes(StandardCharsets.UTF_8);
-        int length = out.length;
-
-        http.setFixedLengthStreamingMode(length);
-        if (isForm)
-            http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        http.connect();
-        try (OutputStream os = http.getOutputStream()) {
-            os.write(out);
+    public void makeGet(URL url) {
+        try {
+            StringBuilder result = new StringBuilder();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            while ((line = rd.readLine()) != null) {
+                result.append(line);
+            }
+            rd.close();
+            System.out.println("GET " + url);
+        } catch (Exception e) {
+            e.printStackTrace(); // Ignored
         }
-        http.disconnect();
     }
 
-    private final UserEndPoint replEndPoint = s -> {
+    public void makePost(URL url, String content, boolean isForm) {
         try {
-            if (replSession != null) replSession.sendMessage(new TextMessage(s));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    };
+            System.out.println("POSTing to " + url);
+            URLConnection con = url.openConnection();
+            HttpURLConnection http = (HttpURLConnection) con;
+            http.setRequestMethod("POST");
+            http.setDoOutput(true);
 
-    private final UserEndPoint resultEndPoint = s -> {
-        try {
-            if (resultSession != null) resultSession.sendMessage(new TextMessage(s));
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.print(s);
-        }
-    };
+            byte[] out = content.getBytes(StandardCharsets.UTF_8);
+            int length = out.length;
 
-    private final UserEndPoint logEndPoint = s -> {
-        try {
-            if (logSession != null) logSession.sendMessage(new TextMessage(s));
+            http.setFixedLengthStreamingMode(length);
+            if (isForm)
+                http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            http.connect();
+            try (OutputStream os = http.getOutputStream()) {
+                os.write(out);
+            }
+            http.disconnect();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("POST Failed: " + url);
         }
-    };
+    }
+
+    class StringJoiner {
+
+        private String delimiter;
+        private StringBuilder buf = new StringBuilder();
+
+        StringJoiner(String delimiter) {
+            this.delimiter = delimiter;
+        }
+
+        void add(String content) {
+            if (buf.toString().equals("")) {
+                buf.append(content);
+            } else {
+                buf.append(delimiter).append(content);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return buf.toString();
+        }
+    }
+//    private final UserEndPoint resultEndPoint = s -> {
+//        try {
+//            if (resultSession != null) resultSession.sendMessage(new TextMessage(s));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            System.out.print(s);
+//        }
+//    };
+//
+//    private final UserEndPoint logEndPoint = s -> {
+//        try {
+//            if (logSession != null) logSession.sendMessage(new TextMessage(s));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    };
 }

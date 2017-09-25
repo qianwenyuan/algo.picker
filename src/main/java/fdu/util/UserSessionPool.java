@@ -23,11 +23,14 @@ public class UserSessionPool {
             if (SINGLE_USER) {
                 // Individual thread for spark initiation
                 // DO NOT Block Spring Boot
-                new Thread(() -> {
-                    try {
-                        pool.getSingleUser();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            pool.getSingleUser();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }).start();
             }

@@ -4,8 +4,7 @@ import java.io.OutputStream
 
 import fdu.bean.generator.LocalVisitor
 import fdu.util.UserSession
-import org.apache.spark.sql.{Dataset, SparkSession}
-import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
+import org.apache.spark.sql.SparkSession
 
 import scala.tools.nsc.interpreter.Results
 import scala.util.Properties.{javaVersion, javaVmName, versionString}
@@ -34,8 +33,40 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
     initData()
   }
 
+  private def importData(tableName: String): Unit = {
+    val df = spark.read
+      .format("com.databricks.spark.csv")
+      .option("header", value = true)
+      .option("inferSchema", "true")
+      // .load(s"file:///c:/$tableName.csv")
+      .load(s"spadata/$tableName.csv")
+    df.createOrReplaceTempView(s"${tableName}_view")
+    spark.sql(s"create table $tableName as select * from ${tableName}_view")
+    spark.sqlContext.dropTempTable(s"${tableName}_view")
+  }
+
   private def initData(): Unit = {
-// // Add data source for demo
+    // val tableNames = "info" :: "ad" :: Nil
+    // tableNames.foreach(importData)
+    // Preprocessing
+    /* spark.sql(
+      """
+        |create table info as
+        |(select label,clickTime,creativeID,userID,positionID,connectionType,telecomsOperator from test)
+        |union
+        |(select label,conversionTime,creativeID,userID,positionID,connectionType,telecomsOperator from train)
+      """.stripMargin) */
+
+    /* spark.sql(
+      """
+
+        |(select 标签,点击时间,素材ID,用户ID,广告位ID,联网方式,运营商 from test)
+        |union
+        |(select 标签,点击时间,素材ID,用户ID,广告位ID,联网方式,运营商 from train))
+      """.stripMargin) */
+
+    // |select * from (
+    // // Add data source for demo
 //    val userDf = spark.read.format("CSV").option("header", "true")
 //      .schema(StructType(List(
 //        StructField("userID", IntegerType),
@@ -105,6 +136,8 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
     repl.echo(welcomeMsg)
     repl.echo("Type in expressions to have them evaluated.")
   }
+
+  def tableExists(table: String): Boolean = getTableNames.contains(table)
 
   def getTableNames: Array[String] = spark.catalog.listTables().collect().map(_.name)
 
