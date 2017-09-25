@@ -1,3 +1,13 @@
 /.idea
+/.vs
 *.iml
 /target
+derby.log
+metastore_db/
+package.sh
+run-deploy.sh
+run-sandbox.sh
+run.ps1
+run.sh
+spark-warehouse/
+.DS_Store
