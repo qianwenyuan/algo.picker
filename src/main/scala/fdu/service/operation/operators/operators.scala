@@ -19,8 +19,10 @@ object UDFHelper {
 
   val probString = "probability"
 
-  val transferProbabilityFunc: UserDefinedFunction =
-    org.apache.spark.sql.functions.udf[Double, DenseVector](v => v.values.last)
+  val transferProbabilityFunc: UserDefinedFunction = {
+    import org.apache.spark.sql.functions._
+    udf[Double, DenseVector](v => v.values.last)
+  }
 
   def transferProbability(dataFrame: DataFrame): DataFrame = {
     if (dataFrame.columns.contains(probString)) {
