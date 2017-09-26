@@ -291,12 +291,15 @@ class LogisticRegressionPredict(name: String,
   extends BinaryOperation(name, _type)
     with CanProduce[DataFrame] {
 
+  override def accept(visitor: OperatorVisitor): Unit = ???
+
+  override def execute(session: UserSession): DataFrame = {
     // UDF
     val probString = "probability"
 
-    val transferProbabilityFunc: UserDefinedFunction = {
+    val transferProbabilityFunc = {
       import org.apache.spark.sql.functions._
-      udf[Double, DenseVector](v => v.values.last)
+      udf[Double, DenseVector](_.values.last)
     }
 
     def transferProbability(dataFrame: DataFrame): DataFrame = {
@@ -307,12 +310,9 @@ class LogisticRegressionPredict(name: String,
           dataFrame
         }
       } else dataFrame
-  }
+    }
+    session.getSparkSession.udf.register("prob", transferProbability _)
 
-
-  override def accept(visitor: OperatorVisitor): Unit = ???
-
-  override def execute(session: UserSession): DataFrame = {
     val (model, table) =
       getLeft match {
         case m: LogisticRegressionModel =>
@@ -323,7 +323,7 @@ class LogisticRegressionPredict(name: String,
             t.executeCached(session))
       }
 
-    transferProbability(model.transform(table))
+    model.transform(table)
   }
 
 }
