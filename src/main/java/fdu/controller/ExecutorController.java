@@ -1,6 +1,7 @@
 package fdu.controller;
 
 import fdu.Config;
+import fdu.exceptions.HiveTableNotFoundException;
 import fdu.service.Job;
 import fdu.service.OperationParserService;
 import fdu.service.operation.operators.CanProduce;
@@ -17,6 +18,7 @@ import scala.Tuple2;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +52,7 @@ public class ExecutorController {
                 long start = System.currentTimeMillis();
                 Job job = operationParserService.parse(conf);
                 try {
+                try {
                     Object res;
                     if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
                         res = userSession.getSparkSession().table(job.getTable());
@@ -62,20 +65,16 @@ public class ExecutorController {
                     userSession.sendResult(Config.getAddress(), job.getJid(), ResultSerialization.toString(res));
                     System.out.println("Job Finished");
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
+                } catch (HiveTableNotFoundException e1) {
+                        userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
                 } catch (Exception e) {
                     e.printStackTrace();
-                    try {
-                        if (e instanceof NoSuchTableException) {
-                            userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
-                        } else {
-                            userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
-                        }
-                    } catch (Exception e1) {
-                        e1.printStackTrace();
-                    }
+                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
                     System.out.println(System.currentTimeMillis() - start);
                 }
-            }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }}
         }).start();
         return "OK";
     }
