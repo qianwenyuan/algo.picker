@@ -5,6 +5,7 @@ import java.util
 import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
 import fdu.util.UserSession
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.{Dataset, Row}
 import org.json.JSONObject
 
@@ -16,6 +17,8 @@ class DataSource(name: String,
                  @BeanProperty val alias: String)
   extends UnaryOperation(name, `type`)
     with SqlOperation {
+
+  @throws[NoSuchTableException]
   override def execute(user: UserSession): Dataset[Row] = user.getSparkSession.table(name).as(alias)
 
   override def accept(visitor: OperatorVisitor): Unit = {

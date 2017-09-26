@@ -8,6 +8,7 @@ import fdu.util.ResultSerialization;
 import fdu.util.UserSession;
 import fdu.util.UserSessionPool;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,12 +65,16 @@ public class ExecutorController {
                 } catch (Exception e) {
                     e.printStackTrace();
                     try {
-                        userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
+                        if (e instanceof NoSuchTableException) {
+                            userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
+                        } else {
+                            userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
+                        }
                     } catch (Exception e1) {
                         e1.printStackTrace();
                     }
+                    System.out.println(System.currentTimeMillis() - start);
                 }
-                System.out.println(System.currentTimeMillis() - start);
             }
         }).start();
         return "OK";
