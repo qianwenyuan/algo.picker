@@ -27,7 +27,7 @@ object UDFHelper {
       } finally {
         dataFrame
       }
-    }
+    } else dataFrame
   }
 }
 
