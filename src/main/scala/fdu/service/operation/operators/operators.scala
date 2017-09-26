@@ -15,27 +15,6 @@ import scala.beans.{BeanProperty, BooleanBeanProperty}
   * Created by guoli on 2017/4/26.
   */
 
-object UDFHelper {
-
-  val probString = "probability"
-
-  val transferProbabilityFunc: UserDefinedFunction = {
-    import org.apache.spark.sql.functions._
-    udf[Double, DenseVector](v => v.values.last)
-  }
-
-  def transferProbability(dataFrame: DataFrame): DataFrame = {
-    if (dataFrame.columns.contains(probString)) {
-      try {
-        dataFrame.withColumn("regularProbability", transferProbabilityFunc(dataFrame(probString)))
-      } finally {
-        dataFrame
-      }
-    } else dataFrame
-  }
-}
-
-
 class Sample(name: String,
              _type: String,
              @BooleanBeanProperty val withReplacement: Boolean,
@@ -311,6 +290,27 @@ class LogisticRegressionPredict(name: String,
                                 _type: String)
   extends BinaryOperation(name, _type)
     with CanProduce[DataFrame] {
+
+  object UDFHelper {
+
+    val probString = "probability"
+
+    val transferProbabilityFunc: UserDefinedFunction = {
+      import org.apache.spark.sql.functions._
+      udf[Double, DenseVector](v => v.values.last)
+    }
+
+    def transferProbability(dataFrame: DataFrame): DataFrame = {
+      if (dataFrame.columns.contains(probString)) {
+        try {
+          dataFrame.withColumn("regularProbability", transferProbabilityFunc(dataFrame(probString)))
+        } finally {
+          dataFrame
+        }
+      } else dataFrame
+    }
+  }
+
 
   override def accept(visitor: OperatorVisitor): Unit = ???
 
