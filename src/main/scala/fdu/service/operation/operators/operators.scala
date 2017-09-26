@@ -291,8 +291,7 @@ class LogisticRegressionPredict(name: String,
   extends BinaryOperation(name, _type)
     with CanProduce[DataFrame] {
 
-  object UDFHelper {
-
+    // UDF
     val probString = "probability"
 
     val transferProbabilityFunc: UserDefinedFunction = {
@@ -308,7 +307,6 @@ class LogisticRegressionPredict(name: String,
           dataFrame
         }
       } else dataFrame
-    }
   }
 
 
@@ -325,7 +323,7 @@ class LogisticRegressionPredict(name: String,
             t.executeCached(session))
       }
 
-    UDFHelper.transferProbability(model.transform(table))
+    transferProbability(model.transform(table))
   }
 
 }
