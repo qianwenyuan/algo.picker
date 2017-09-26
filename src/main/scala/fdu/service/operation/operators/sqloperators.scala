@@ -19,7 +19,11 @@ class DataSource(name: String,
     with SqlOperation {
 
   @throws[NoSuchTableException]
-  override def execute(user: UserSession): Dataset[Row] = user.getSparkSession.table(name).as(alias)
+  override def execute(user: UserSession): Dataset[Row] = {
+    if (user.getEmbeddedExecutor.tableExists(name))
+      throw new NoSuchTableException("default", name)
+    else user.getSparkSession.table(name).as(alias)
+  }
 
   override def accept(visitor: OperatorVisitor): Unit = {
     visitor.visitDataSource(this)
