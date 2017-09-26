@@ -5,6 +5,7 @@ import fdu.service.operation._
 import fdu.util.UserSession
 import org.apache.spark.ml._
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.json.JSONObject
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
@@ -12,6 +13,24 @@ import scala.beans.{BeanProperty, BooleanBeanProperty}
 /**
   * Created by guoli on 2017/4/26.
   */
+
+object UDFHelper {
+
+  val probString = "probability"
+
+  val transferProbabilityFunc: UserDefinedFunction = org.apache.spark.sql.functions.udf[Double, Vector[Double]](_.last)
+
+  def transferProbability(dataFrame: DataFrame): DataFrame = {
+    if (dataFrame.columns.contains(probString)) {
+      try {
+        dataFrame.withColumn("regularProbability", transferProbabilityFunc(dataFrame(probString)))
+      } finally {
+        dataFrame
+      }
+    }
+  }
+}
+
 
 class Sample(name: String,
              _type: String,
@@ -302,7 +321,7 @@ class LogisticRegressionPredict(name: String,
             t.executeCached(session))
       }
 
-    model.transform(table)
+    UDFHelper.transferProbability(model.transform(table))
   }
 
 }
