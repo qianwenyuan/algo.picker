@@ -6,7 +6,6 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.exceptions.HiveTableNotFoundException
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
 import fdu.util.UserSession
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.{Dataset, Row}
 import org.json.JSONObject
 
@@ -21,7 +20,7 @@ class DataSource(name: String,
 
   @throws(classOf[HiveTableNotFoundException])
   override def execute(user: UserSession): Dataset[Row] = {
-    if (user.getEmbeddedExecutor.tableExists(name))
+    if (!user.getEmbeddedExecutor.tableExists(name))
       throw new HiveTableNotFoundException()
     else user.getSparkSession.table(name).as(alias)
   }
