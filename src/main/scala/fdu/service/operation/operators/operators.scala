@@ -295,20 +295,20 @@ class LogisticRegressionPredict(name: String,
 
   override def execute(session: UserSession): DataFrame = {
     // UDF
-    val probString = "probability"
-
-    val transferProbabilityFunc : DenseVector => Double  = _.values.last
-
-    def transferProbability(dataFrame: DataFrame): DataFrame = {
-      if (dataFrame.columns.contains(probString)) {
-        try {
-          import org.apache.spark.sql.functions._
-          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
-        } finally {
-          dataFrame
-        }
-      } else dataFrame
-    }
+//    val probString = "probability"
+//
+//    val transferProbabilityFunc : DenseVector => Double  = _.values.last
+//
+//    def transferProbability(dataFrame: DataFrame): DataFrame = {
+//      if (dataFrame.columns.contains(probString)) {
+//        try {
+//          import org.apache.spark.sql.functions._
+//          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
+//        } finally {
+//          dataFrame
+//        }
+//      } else dataFrame
+//    }
 
     val (model, table) =
       getLeft match {
@@ -320,7 +320,8 @@ class LogisticRegressionPredict(name: String,
             t.executeCached(session))
       }
 
-    transferProbability(model.transform(table))
+    // transferProbability(model.transform(table))
+    model.transform(table)
   }
 
 }
