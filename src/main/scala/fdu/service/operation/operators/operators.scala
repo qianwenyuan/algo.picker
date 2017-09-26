@@ -4,6 +4,7 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation._
 import fdu.util.UserSession
 import org.apache.spark.ml._
+import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.json.JSONObject
@@ -18,7 +19,8 @@ object UDFHelper {
 
   val probString = "probability"
 
-  val transferProbabilityFunc: UserDefinedFunction = org.apache.spark.sql.functions.udf[Double, Vector[Double]](_.last)
+  val transferProbabilityFunc: UserDefinedFunction =
+    org.apache.spark.sql.functions.udf[Double, DenseVector](v => v.values.last)
 
   def transferProbability(dataFrame: DataFrame): DataFrame = {
     if (dataFrame.columns.contains(probString)) {
