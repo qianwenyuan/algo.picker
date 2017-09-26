@@ -299,13 +299,11 @@ class LogisticRegressionPredict(name: String,
 
     val transferProbabilityFunc : DenseVector => Double  = _.values.last
 
-    session.getSparkSession.udf.register("prob", transferProbabilityFunc)
-
     def transferProbability(dataFrame: DataFrame): DataFrame = {
       if (dataFrame.columns.contains(probString)) {
         try {
           import org.apache.spark.sql.functions._
-          dataFrame.withColumn("regularProbability", col(s"prob($probString)"))
+          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
         } finally {
           dataFrame
         }
