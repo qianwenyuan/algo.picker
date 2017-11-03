@@ -52,29 +52,30 @@ public class ExecutorController {
                 long start = System.currentTimeMillis();
                 Job job = operationParserService.parse(conf);
                 try {
-                try {
-                    Object res;
-                    if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
-                        res = userSession.getSparkSession().table(job.getTable());
-                    } else {
-                        res = ((CanProduce) job.getRootOperation()).executeCached(userSession);
-                        if (res != null && res instanceof Dataset) {
-                            ((Dataset) res).write().saveAsTable(job.getTable());
+                    try {
+                        Object res;
+                        if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
+                            res = userSession.getSparkSession().table(job.getTable());
+                        } else {
+                            res = ((CanProduce) job.getRootOperation()).executeCached(userSession);
+                            if (res != null && res instanceof Dataset) {
+                                ((Dataset) res).write().saveAsTable(job.getTable());
+                            }
                         }
-                    }
-                    userSession.sendResult(Config.getAddress(), job.getJid(), ResultSerialization.toString(res));
-                    System.out.println("Job Finished");
-                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
-                } catch (HiveTableNotFoundException e1) {
+                        userSession.sendResult(Config.getAddress(), job.getJid(), ResultSerialization.toString(res));
+                        System.out.println("Job Finished");
+                        userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
+                    } catch (HiveTableNotFoundException e1) {
                         userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
-                } catch (Exception e) {
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
+                        System.out.println(System.currentTimeMillis() - start);
+                    }
+                } catch (MalformedURLException e) {
                     e.printStackTrace();
-                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
-                    System.out.println(System.currentTimeMillis() - start);
                 }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }}
+            }
         }).start();
         return "OK";
     }
