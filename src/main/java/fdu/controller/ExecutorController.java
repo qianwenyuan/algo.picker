@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -51,21 +52,26 @@ public class ExecutorController {
 
     public String getCreateContent(UserSession userSession, String tablename) {
         // TODO
-        String columns = userSession.getEmbeddedExecutor().getTableColumns(tablename).toString();
-        System.out.print(columns);
-        String dimensions=columns;
+        String columns[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
+        //System.out.println("\n\n"+ Arrays.toString(columns)+"\n\n");
+        //String dimensions=columns;
+        /*
         String[] columnlist = columns.split(",");
-        String sum=columnlist[0];
-        String measures=columnlist[0];
-        String timeColumn=columnlist[1];
+        for (int i=0;i<columnlist.length;i++) {
+            System.out.println(columnlist[i]);
+        }*/
+        //System.out.println(columns[0]);
+        String sum=columns[1];
+        String measures=columns[1];
+        String timeColumn=columns[0];
         String timeFormat="yyyy-mm-dd";
-        return "dimensiongs="+dimensions+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
+        return "dimensiongs="+Arrays.toString(columns)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
     }
 
     public String getBuildContent() {
         // TODO
-        String startTime="0000-00-00";
-        String endTime="1111-11-11";
+        String startTime="100";
+        String endTime="5000";
         return "startTime="+startTime+"&" +"endTime="+endTime;
     }
 
@@ -139,7 +145,6 @@ public class ExecutorController {
     public String getTable(@RequestBody String tablename, @Autowired HttpServletRequest request) throws IOException {
         UserSession userSession = getUserSession(request);
         Integer eql= tablename.indexOf("=");
-        getCreateContent(userSession, tablename.substring(eql+1));
         return new JSONArray(userSession.getEmbeddedExecutor().getTableColumns(tablename.substring(eql+1))).toString();
     }
 
