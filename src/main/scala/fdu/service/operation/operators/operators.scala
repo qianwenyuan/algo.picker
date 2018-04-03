@@ -510,3 +510,4 @@ object Word2Vec extends CanGenFromJson {
       _type = obj.getString("type")
     )
 }
+

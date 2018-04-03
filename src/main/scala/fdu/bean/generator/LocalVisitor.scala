@@ -55,6 +55,19 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
   }
 
   @deprecated
+  def visitGroupbyCount(groupby: GroupbyCount): Unit = {
+    groupby.getChild match {
+      case op if op.isInstanceOf[DataSource] =>
+        sql ++= " from " + op.asInstanceOf[DataSource].toSql
+        " groupby " + groupby.getColumn + " "
+      case op if op.isInstanceOf[Join] =>
+        sql ++= " groupby " + groupby.getColumn
+      case _ =>
+        throw new AssertionError("Not handled")
+    }
+  }
+
+  @deprecated
   def visitJoin(join: Join): Unit = {
     require(join.getLeft.isInstanceOf[DataSource] && join.getRight.isInstanceOf[DataSource],
       "Not handled"

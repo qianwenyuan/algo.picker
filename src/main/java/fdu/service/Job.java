@@ -3,7 +3,6 @@ package fdu.service;
 import fdu.service.operation.Operation;
 
 public class Job {
-
     private String jid;
     private String table;
     private Operation rootOperation;

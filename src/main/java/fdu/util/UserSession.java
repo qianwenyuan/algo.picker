@@ -223,20 +223,5 @@ public class UserSession {
             return buf.toString();
         }
     }
-//    private final UserEndPoint resultEndPoint = s -> {
-//        try {
-//            if (resultSession != null) resultSession.sendMessage(new TextMessage(s));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.out.print(s);
-//        }
-//    };
-//
-//    private final UserEndPoint logEndPoint = s -> {
-//        try {
-//            if (logSession != null) logSession.sendMessage(new TextMessage(s));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    };
+
 }

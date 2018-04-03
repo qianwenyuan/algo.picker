@@ -14,6 +14,10 @@ public interface OperatorVisitor {
 
     void visitJoin(Join join);
 
+    //void visitMax(Max max);
+    //void visitCount(Count count);
+    void visitGroupbyCount(GroupbyCount groupbyCount);
+
     void visitKMeansModel(KMeansModel model);
 
     void visitRandomForest(RandomForestModel model);

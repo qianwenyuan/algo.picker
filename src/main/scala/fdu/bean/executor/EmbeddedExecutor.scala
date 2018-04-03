@@ -12,7 +12,7 @@ import scala.util.Properties.{javaVersion, javaVmName, versionString}
 class EmbeddedExecutor(session: UserSession, out: OutputStream) {
 
   val spark: SparkSession = SparkSession
-      .builder
+      .builder.master("local[*]")
       .appName(s"AlgoPicker - Session: ${session.getSessionID}")
       .enableHiveSupport()
       .getOrCreate()
@@ -140,6 +140,8 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
   def tableExists(table: String): Boolean = getTableNames.contains(table)
 
   def getTableNames: Array[String] = spark.catalog.listTables().collect().map(_.name)
+
+  def getTableColumns(tablename: String): Array[String] = spark.catalog.listColumns(tablename).collect().map(_.name);
 
   def getTableSchemas(tableNames: Array[String]): Array[(String, String)] = tableNames.filter(_.length > 0).flatMap {
     n => getTableSchema(n) match {

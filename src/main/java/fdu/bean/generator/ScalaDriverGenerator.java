@@ -18,6 +18,27 @@ public class ScalaDriverGenerator implements OperatorSourceGenerator {
 
     }
 
+    /*
+    @Override
+    public void visitCount() {
+        Operation op = ；
+        scalaProgram += "count"
+    }
+    */
+    @Override
+    public void visitGroupbyCount(GroupbyCount groupbyCount) {
+        Operation op = groupbyCount.getChild();
+        if (op instanceof DataSource) {
+            String alias = ((DataSource) op).getAlias();
+            scalaProgram += "from " + ((DataSource) op).toSql() +
+                    "groupby " + groupbyCount.getColumn() + " count";
+        } else if (op instanceof Join) {
+            scalaProgram += "groupby " + groupbyCount.getColumn()+" count";
+        } else {
+            throw new AssertionError("Not Handled.");
+        }
+    }
+
     @Override
     public void visitFilter(Filter filter) {
         Operation op = filter.getChild();
@@ -41,6 +62,7 @@ public class ScalaDriverGenerator implements OperatorSourceGenerator {
         DataSource right = (DataSource) join.getRight();
         scalaProgram += "from " + left.toSql() + " join " + right.toSql() + " on " + join.getCondition() + " ";
     }
+
 
     @Override
     public void visitKMeansModel(KMeansModel model) {

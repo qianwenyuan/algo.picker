@@ -6,7 +6,7 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.exceptions.HiveTableNotFoundException
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
 import fdu.util.UserSession
-import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.{DataFrame, Dataset, RelationalGroupedDataset, Row}
 import org.json.JSONObject
 
 import scala.beans.BeanProperty
@@ -176,6 +176,136 @@ object Join extends CanGenFromJson {
   )
 }
 
+// New model, added by qwy
+class GroupbyCount(name: String,
+             `type`: String,
+             @BeanProperty val column: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): DataFrame =
+    getChild
+      .asInstanceOf[CanProduce[Dataset[Row]]]
+      .executeCached(session).groupBy(column).count()
+
+
+
+  override def toString: String = "([GroupbyCount name: " + name + " column: " + column + "]" + getChild + ")"
+
+  @throws[ClassCastException]
+  override def toSql: String = {
+    val left = getChild.asInstanceOf[SqlOperation]
+    left match {
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " GROUPBY " + column
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " GROUPBY " + column
+      case _ => throw new UnsupportedOperationException("Invalid filter node")
+    }
+  }
+
+  override def equals(other: Any): Boolean = other match {
+    case that: GroupbyCount =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        column == that.column
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[GroupbyCount]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, column)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+}
+
+object GroupbyCount extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new GroupbyCount (
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("column")
+  )
+}
+/*
+class Count(name: String,
+            `type`: String,
+            @BeanProperty val condition: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): Long =
+    getChild
+      .asInstanceOf[CanProduce[Dataset[Row]]]
+      .executeCached(session).count()
+
+  override def accept(visitor: OperatorVisitor): Unit = {
+    getChild.accept(visitor)
+    visitor.visitCount(this)
+  }
+
+  override def toString: String = "([Count name: " + name + " condition: " + condition + "]" + getChild + ")"
+
+  @throws[ClassCastException]
+  override def toSql: String = {
+
+  }
+  /*
+  override def toSql: String = {
+    val left = getChild.asInstanceOf[SqlOperation]
+    left match {
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " WHERE " + condition
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " WHERE " + condition
+      case _ => throw new UnsupportedOperationException("Invalid filter node")
+    }
+  }
+  */
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Count =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        condition == that.condition
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Count]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, condition)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+*/
+
+/* TODO
+class Max(name: String,
+          `type`: String,
+          @BeanProperty val condition: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): Dataset[Row] =
+    getChild
+      .asInstanceOf[CanProduce[Dataset[Row]]]
+      .executeCached(session).max(condition)
+
+  override def accept(visitor: OperatorVisitor): Unit = {
+    getChild.accept(visitor)
+    visitor.visitFilter(this)
+  }
+}
+
+object Max extends CanGenFromJson {
+  def newInstance(obj: JSONObject): Max = new Max(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("condition"),
+    obj.getString("useExpression")
+  )
+}
+*/
 
 class Project(name: String,
               `type`: String,

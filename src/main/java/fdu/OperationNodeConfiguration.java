@@ -35,6 +35,16 @@ public class OperationNodeConfiguration {
         put("lr-predict", LogisticRegressionPredict.class);
         put("onehot", OneHotEncoder.class);
         put("vector-asm", VectorAssembler.class);
+        // Added by qwy
+        put("groupbycount", GroupbyCount.class);
+        //put("max", Max.class);
+        /* TODO
+        put("min", Min.class);
+        put("groupby", Groupby.class);
+        put("top-n", TopN.class);
+        put("count", Count.class);
+        put("sum", Sum.class);
+        */
     }};
 
 }
