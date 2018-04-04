@@ -177,7 +177,7 @@ object Join extends CanGenFromJson {
 }
 
 // New model, added by qwy
-class GroupbyCount(name: String,
+class GroupBy(name: String,
              `type`: String,
              @BeanProperty val column: String)
   extends UnaryOperation(name, `type`)
@@ -189,7 +189,7 @@ class GroupbyCount(name: String,
 
 
 
-  override def toString: String = "([GroupbyCount name: " + name + " column: " + column + "]" + getChild + ")"
+  override def toString: String = "([Groupby name: " + name + " column: " + column + "]" + getChild + ")"
 
   @throws[ClassCastException]
   override def toSql: String = {
@@ -202,7 +202,7 @@ class GroupbyCount(name: String,
   }
 
   override def equals(other: Any): Boolean = other match {
-    case that: GroupbyCount =>
+    case that: GroupBy =>
       super.equals(that) &&
         (that canEqual this) &&
         name == that.name &&
@@ -211,7 +211,7 @@ class GroupbyCount(name: String,
     case _ => false
   }
 
-  def canEqual(other: Any): Boolean = other.isInstanceOf[GroupbyCount]
+  def canEqual(other: Any): Boolean = other.isInstanceOf[GroupBy]
 
   override def hashCode(): Int = {
     val state = Seq(super.hashCode(), name, `type`, column)
@@ -221,8 +221,8 @@ class GroupbyCount(name: String,
   override def accept(visitor: OperatorVisitor): Unit = ???
 }
 
-object GroupbyCount extends CanGenFromJson {
-  def newInstance(obj: JSONObject) = new GroupbyCount (
+object GroupBy extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new GroupBy (
     obj.getString("name"),
     obj.getString("type"),
     obj.getString("column")
