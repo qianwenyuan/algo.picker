@@ -46,17 +46,17 @@ public class ExecutorController {
     public String getCreateContent(UserSession userSession, String tablename) {
         // TODO
         String columns[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
-        String sum=columns[1];
-        String measures=columns[1];
-        String timeColumn=columns[0];
-        String timeFormat="yyyy-mm-dd";
+        String sum="";
+        String measures="";
+        String timeColumn="";
+        String timeFormat="";
         return "dimensiongs="+Arrays.toString(columns)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
     }
 
     public String getBuildContent() {
         // TODO
-        String startTime="100";
-        String endTime="5000";
+        String startTime="";
+        String endTime="";
         return "startTime="+startTime+"&" +"endTime="+endTime;
     }
 
@@ -113,6 +113,7 @@ public class ExecutorController {
                 }
             }
         }).start();
+
         return "OK";
     }
 
