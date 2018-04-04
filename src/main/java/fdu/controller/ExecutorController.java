@@ -42,25 +42,10 @@ public class ExecutorController {
         return UserSessionPool.getInstance().addOrGetUserSession(request.getSession().getId());
     }
 
-    /*
-    public void create_table_in_DFM(UserSession userSession, String jid, String table) {
-        String time = String.valueOf(System.currentTimeMillis());
-        URL url = new URL("http://"+Config.getDFMAddress()+":8080/project/create/"+jid+"-"+time+"/"+table);
-        userSession.makePost(url,"",true);
-    }
-    */
 
     public String getCreateContent(UserSession userSession, String tablename) {
         // TODO
         String columns[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
-        //System.out.println("\n\n"+ Arrays.toString(columns)+"\n\n");
-        //String dimensions=columns;
-        /*
-        String[] columnlist = columns.split(",");
-        for (int i=0;i<columnlist.length;i++) {
-            System.out.println(columnlist[i]);
-        }*/
-        //System.out.println(columns[0]);
         String sum=columns[1];
         String measures=columns[1];
         String timeColumn=columns[0];
@@ -91,9 +76,6 @@ public class ExecutorController {
                 try {
                     status = 1;
                     Object res;
-                    //
-                    System.out.print("hello~~~~~~~~~~~~~~~~~~");
-                    //
                     if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
                         res = userSession.getSparkSession().table(job.getTable());
                     } else {
@@ -126,9 +108,10 @@ public class ExecutorController {
                     System.out.println(System.currentTimeMillis() - start);
                     status = -1;
                 }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }}
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+            }
         }).start();
         return "OK";
     }
