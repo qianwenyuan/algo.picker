@@ -45,12 +45,12 @@ public class ExecutorController {
 
     public String getCreateContent(UserSession userSession, String tablename) {
         // TODO
-        String columns[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
+        String dimensions[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
         String sum="";
         String measures="";
         String timeColumn="";
         String timeFormat="";
-        return "dimensiongs="+Arrays.toString(columns)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
+        return "dimensiongs="+Arrays.toString(dimensions)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
     }
 
     public String getBuildContent() {
@@ -89,9 +89,9 @@ public class ExecutorController {
                     System.out.println(resultString);
                     System.out.println("Job Finished");
                     //create_table_in_DFM(userSession, job.getJid(),job.getTable());
-                    String task_id = job.getJid()+"-"+String.valueOf(System.currentTimeMillis());
+                    String task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
                     //createTable
-                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create"+task_id+"/"+job.getTable()), getCreateContent(userSession, job.getTable()),true);
+                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+task_id+"/"+job.getTable()), getCreateContent(userSession, job.getTable()),true);
                     //buildTable
                     userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
                     //getstatus
