@@ -3,6 +3,16 @@ package fdu.util;
 import fdu.Config;
 import fdu.bean.executor.EmbeddedExecutor;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.apache.spark.sql.SparkSession;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -177,6 +187,7 @@ public class UserSession {
         }
     }
 
+
     public void makePost(URL url, String content, boolean isForm) {
         try {
             System.out.println("POSTing to " + url);
@@ -196,9 +207,40 @@ public class UserSession {
                 os.write(out);
             }
             http.disconnect();
+            System.out.println("create information posted\n");
         } catch (IOException e) {
             System.out.println("POST Failed: " + url);
         }
+    }
+
+
+    public String makePost(URL url, Map<String, String> params) {
+        HttpClient httpclient = HttpClients.createDefault();
+        HttpPost httppost = new HttpPost(url.toString());
+//        httppost.setHeader("Authorization", "Basic QURNSU46S1lMSU4=");
+//        httppost.setHeader("Content-Type", "application/json;charset=UTF-8");
+
+        try {
+            List<NameValuePair> nameValuePairs = new ArrayList<>();
+            for(String key: params.keySet()){
+                nameValuePairs.add(new BasicNameValuePair(key, params.get(key)));
+            }
+            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+            //Execute and get the response.
+            System.out.println("POST url: "+url);
+            System.out.println("POST data: "+ nameValuePairs.toString());
+            HttpResponse response = httpclient.execute(httppost);
+            HttpEntity entity = response.getEntity();
+
+            if (entity != null) {
+                String result = EntityUtils.toString(entity);
+                System.out.println("result: "+result);
+                return result;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     class StringJoiner {
