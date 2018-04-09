@@ -2,6 +2,7 @@ package fdu.service.operation.operators
 
 import java.util
 
+import breeze.linalg.max
 import fdu.bean.generator.OperatorVisitor
 import fdu.exceptions.HiveTableNotFoundException
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
@@ -228,84 +229,207 @@ object GroupBy extends CanGenFromJson {
     obj.getString("column")
   )
 }
-/*
-class Count(name: String,
-            `type`: String,
-            @BeanProperty val condition: String)
+
+class Max(name: String,
+          `type`: String,
+          @BeanProperty val column: String)
   extends UnaryOperation(name, `type`)
     with SqlOperation {
-  override def execute(session: UserSession): Long =
+  override def execute(session: UserSession): DataFrame =
     getChild
-      .asInstanceOf[CanProduce[Dataset[Row]]]
-      .executeCached(session).count()
+      .asInstanceOf[CanProduce[DataFrame]]
+      .executeCached(session).agg(org.apache.spark.sql.functions.max(column))
 
-  override def accept(visitor: OperatorVisitor): Unit = {
-    getChild.accept(visitor)
-    visitor.visitCount(this)
-  }
-
-  override def toString: String = "([Count name: " + name + " condition: " + condition + "]" + getChild + ")"
+  override def toString: String = "([Max name: " + name + " column: " + column + "]" + getChild + ")"
 
   @throws[ClassCastException]
   override def toSql: String = {
-
+    val left = getChild.asInstanceOf[SqlOperation]
+    left match {
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " MAX(" + column + ")"
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " MAX(" + column + ")"
+      case _ => throw new UnsupportedOperationException("Invalid max node")
+    }
   }
-  /*
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Max =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        column == that.column
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Max]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, column)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+}
+
+object Max extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new Max(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("column")
+  )
+}
+
+class Min(name: String,
+          `type`: String,
+          @BeanProperty val column: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): DataFrame =
+    getChild
+      .asInstanceOf[CanProduce[DataFrame]]
+      .executeCached(session).agg(org.apache.spark.sql.functions.min(column))
+
+  override def toString: String = "([Min name: " + name + " column: " + column + "]" + getChild + ")"
+
+  @throws[ClassCastException]
   override def toSql: String = {
     val left = getChild.asInstanceOf[SqlOperation]
     left match {
-      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " WHERE " + condition
-      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " WHERE " + condition
-      case _ => throw new UnsupportedOperationException("Invalid filter node")
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " MIN(" + column + ")"
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " MIN(" + column + ")"
+      case _ => throw new UnsupportedOperationException("Invalid min node")
     }
   }
-  */
 
+  override def equals(other: Any): Boolean = other match {
+    case that: Min =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        column == that.column
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Min]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, column)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+}
+
+object Min extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new Min(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("column")
+  )
+}
+
+class Sum(name: String,
+          `type`: String,
+          @BeanProperty val column: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): DataFrame =
+    getChild
+      .asInstanceOf[CanProduce[DataFrame]]
+      .executeCached(session).agg(org.apache.spark.sql.functions.sum(column))
+
+  override def toString: String = "([Sum name: " + name + " column: " + column + "]" + getChild + ")"
+
+  @throws[ClassCastException]
+  override def toSql: String = {
+    val left = getChild.asInstanceOf[SqlOperation]
+    left match {
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " SUM(" + column + ")"
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " SUM(" + column + ")"
+      case _ => throw new UnsupportedOperationException("Invalid sum node")
+    }
+  }
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Sum =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        column == that.column
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Sum]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, column)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+}
+
+object Sum extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new Sum(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("column")
+  )
+}
+
+class Count(name: String,
+          `type`: String,
+          @BeanProperty val column: String)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): DataFrame =
+    getChild
+      .asInstanceOf[CanProduce[DataFrame]]
+      .executeCached(session).agg(org.apache.spark.sql.functions.count(column))
+
+  override def toString: String = "([Count name: " + name + " column: " + column + "]" + getChild + ")"
+
+  @throws[ClassCastException]
+  override def toSql: String = {
+    val left = getChild.asInstanceOf[SqlOperation]
+    left match {
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " COUNT(" + column + ")"
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " COUNT(" + column + ")"
+      case _ => throw new UnsupportedOperationException("Invalid count node")
+    }
+  }
+  
   override def equals(other: Any): Boolean = other match {
     case that: Count =>
       super.equals(that) &&
         (that canEqual this) &&
         name == that.name &&
         `type` == that.`type` &&
-        condition == that.condition
+        column == that.column
     case _ => false
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Count]
 
   override def hashCode(): Int = {
-    val state = Seq(super.hashCode(), name, `type`, condition)
+    val state = Seq(super.hashCode(), name, `type`, column)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
-}
-*/
 
-/* TODO
-class Max(name: String,
-          `type`: String,
-          @BeanProperty val condition: String)
-  extends UnaryOperation(name, `type`)
-    with SqlOperation {
-  override def execute(session: UserSession): Dataset[Row] =
-    getChild
-      .asInstanceOf[CanProduce[Dataset[Row]]]
-      .executeCached(session).max(condition)
-
-  override def accept(visitor: OperatorVisitor): Unit = {
-    getChild.accept(visitor)
-    visitor.visitFilter(this)
-  }
+  override def accept(visitor: OperatorVisitor): Unit = ???
 }
 
-object Max extends CanGenFromJson {
-  def newInstance(obj: JSONObject): Max = new Max(
+object Count extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new Count(
     obj.getString("name"),
     obj.getString("type"),
-    obj.getString("condition"),
-    obj.getString("useExpression")
+    obj.getString("column")
   )
 }
-*/
+
 
 class Project(name: String,
               `type`: String,
