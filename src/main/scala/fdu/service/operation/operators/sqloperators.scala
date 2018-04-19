@@ -7,7 +7,7 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.exceptions.HiveTableNotFoundException
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
 import fdu.util.UserSession
-import org.apache.spark.sql.{DataFrame, Dataset, RelationalGroupedDataset, Row}
+import org.apache.spark.sql.{DataFrame, Dataset, RelationalGroupedDataset, Row, SQLContext}
 import org.json.JSONObject
 
 import scala.beans.BeanProperty
@@ -183,13 +183,12 @@ class GroupBy(name: String,
              @BeanProperty val column: String)
   extends UnaryOperation(name, `type`)
     with SqlOperation {
-  override def execute(session: UserSession): DataFrame =
+  override def execute(session: UserSession): DataFrame = {
     getChild
       .asInstanceOf[CanProduce[Dataset[Row]]]
       .executeCached(session).groupBy(column).count()
 
-
-
+  }
   override def toString: String = "([Groupby name: " + name + " column: " + column + "]" + getChild + ")"
 
   @throws[ClassCastException]
@@ -401,7 +400,7 @@ class Count(name: String,
       case _ => throw new UnsupportedOperationException("Invalid count node")
     }
   }
-  
+
   override def equals(other: Any): Boolean = other match {
     case that: Count =>
       super.equals(that) &&
@@ -430,6 +429,54 @@ object Count extends CanGenFromJson {
   )
 }
 
+// TODO:
+// TopN
+class TopN(name: String,
+            `type`: String,
+            @BeanProperty val column: String,
+            @BeanProperty val N: Int)
+  extends UnaryOperation(name, `type`)
+    with SqlOperation {
+  override def execute(session: UserSession): DataFrame = {
+    getChild
+      .asInstanceOf[CanProduce[DataFrame]]
+      .executeCached(session).sort(org.apache.spark.sql.functions.desc(column)).limit(N)
+  }
+
+  override def toString: String = "([TOPN name: " + name + " column: " + column + "]" + getChild + ")"
+
+  @throws[ClassCastException]
+  override def toSql: String = ???
+
+  override def equals(other: Any): Boolean = other match {
+    case that: TopN =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        name == that.name &&
+        `type` == that.`type` &&
+        column == that.column &&
+        N == that.N
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[TopN]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), name, `type`, column, N)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+}
+
+object TopN extends CanGenFromJson {
+  def newInstance(obj: JSONObject) = new TopN(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("column"),
+    obj.getInt("N")
+  )
+}
 
 class Project(name: String,
               `type`: String,
