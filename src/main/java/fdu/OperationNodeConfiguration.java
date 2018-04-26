@@ -36,15 +36,17 @@ public class OperationNodeConfiguration {
         put("onehot", OneHotEncoder.class);
         put("vector-asm", VectorAssembler.class);
         // Added by qwy
-        put("groupbycount", GroupbyCount.class);
-        //put("max", Max.class);
-        /* TODO
+        //aggregation
+        put("groupby", GroupBy.class);
+        put("max", Max.class);
         put("min", Min.class);
-        put("groupby", Groupby.class);
-        put("top-n", TopN.class);
-        put("count", Count.class);
         put("sum", Sum.class);
-        */
+        put("count", Count.class);
+        put("topn", TopN.class);
+        //classification
+        put("naivebayes-model",NaiveBayesModel.class);
+        put("naivebayes-predict",NaiveBayesPredict.class);
     }};
+    
 
 }
