@@ -295,20 +295,20 @@ class LogisticRegressionPredict(name: String,
 
   override def execute(session: UserSession): DataFrame = {
     // UDF
-//    val probString = "probability"
-//
-//    val transferProbabilityFunc : DenseVector => Double  = _.values.last
-//
-//    def transferProbability(dataFrame: DataFrame): DataFrame = {
-//      if (dataFrame.columns.contains(probString)) {
-//        try {
-//          import org.apache.spark.sql.functions._
-//          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
-//        } finally {
-//          dataFrame
-//        }
-//      } else dataFrame
-//    }
+    //    val probString = "probability"
+    //
+    //    val transferProbabilityFunc : DenseVector => Double  = _.values.last
+    //
+    //    def transferProbability(dataFrame: DataFrame): DataFrame = {
+    //      if (dataFrame.columns.contains(probString)) {
+    //        try {
+    //          import org.apache.spark.sql.functions._
+    //          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
+    //        } finally {
+    //          dataFrame
+    //        }
+    //      } else dataFrame
+    //    }
 
     val (model, table) =
       getLeft match {
@@ -511,3 +511,166 @@ object Word2Vec extends CanGenFromJson {
     )
 }
 
+//TODO
+class NaiveBayesModel(name: String,
+                      _type: String,
+                      @BeanProperty val labelcolumn: String,
+                      @BeanProperty val smoothing: Double,
+                      @BeanProperty val modeltype: String)
+  extends UnaryOperation(name, _type)
+    with CanProduce[Model[classification.NaiveBayesModel]] {
+
+  override def execute(user: UserSession): classification.NaiveBayesModel = {
+    try
+      classification.NaiveBayesModel.load(getName)
+    catch {
+      case _: Any =>
+        val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+        val nb = new classification.NaiveBayes()
+          .setLabelCol(labelcolumn)
+          .setFeaturesCol("features")
+          .setSmoothing(smoothing)
+          .setModelType(modeltype)
+
+        val trainedModel = nb.fit(df)
+        trainedModel
+    }
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: NaiveBayesModel =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        labelcolumn == that.labelcolumn &&
+        smoothing == that.smoothing &&
+        modeltype == that.modeltype
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[NaiveBayesModel]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), labelcolumn, smoothing, modeltype)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object NaiveBayesModel extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new NaiveBayesModel(
+      name = obj.getString("name"),
+      labelcolumn = obj.getString("labelcolumn"),
+      smoothing = obj.getDouble("smoothing"),
+      modeltype = obj.getString("modeltype"),
+      _type = obj.getString("type")
+    )
+}
+
+class NaiveBayesPredict(name: String,
+                        _type: String)
+  extends BinaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+
+  override def execute(session: UserSession): DataFrame = {
+    val (model, table) =
+      getLeft match {
+        case m: NaiveBayesModel =>
+          (m.executeCached(session),
+            getRight.asInstanceOf[CanProduce[DataFrame]].executeCached(session))
+        case t: CanProduce[DataFrame] =>
+          (getRight.asInstanceOf[CanProduce[Model[classification.NaiveBayesModel]]].executeCached(session),
+            t.executeCached(session))
+      }
+    model.transform(table)
+  }
+}
+
+object NaiveBayesPredict extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new NaiveBayesPredict(
+      name = obj.getString("name"),
+      _type = obj.getString("type")
+    )
+}
+
+class DecisionTreeClassificationModel(name: String,
+                                    _type: String,
+                                    @BeanProperty val labelcolumn: String)
+  extends UnaryOperation(name, _type)
+    with CanProduce[Model[classification.DecisionTreeClassificationModel]] {
+
+  override def execute(user: UserSession): classification.DecisionTreeClassificationModel = {
+    try
+      classification.DecisionTreeClassificationModel.load(getName)
+    catch {
+      case _: Any =>
+        val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+        val nb = new classification.DecisionTreeClassifier()
+          .setLabelCol(labelcolumn)
+          .setFeaturesCol("features")
+          .setImpurity("entropy")
+
+        val trainedModel = nb.fit(df)
+        trainedModel
+    }
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: DecisionTreeClassificationModel =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        labelcolumn == that.labelcolumn
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[NaiveBayesModel]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), labelcolumn)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object DecisionTreeClassificationModel extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new DecisionTreeClassificationModel(
+      name = obj.getString("name"),
+      labelcolumn = obj.getString("labelcolumn"),
+      _type = obj.getString("type")
+    )
+}
+
+class DecisionTreeClassificationPredict(name: String,
+                                        _type: String)
+  extends BinaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+
+  override def execute(session: UserSession): DataFrame = {
+    val (model, table) =
+      getLeft match {
+        case m: DecisionTreeClassificationModel =>
+          (m.executeCached(session),
+            getRight.asInstanceOf[CanProduce[DataFrame]].executeCached(session))
+        case t: CanProduce[DataFrame] =>
+          (getRight.asInstanceOf[CanProduce[Model[classification.DecisionTreeClassificationModel]]].executeCached(session),
+            t.executeCached(session))
+      }
+    model.transform(table)
+  }
+}
+
+object DecisionTreeClassificationPredict extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new DecisionTreeClassificationPredict(
+      name = obj.getString("name"),
+      _type = obj.getString("type")
+    )
+}
