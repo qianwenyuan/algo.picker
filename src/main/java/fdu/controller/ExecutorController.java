@@ -20,9 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by liangchg on 2017/4/6.
@@ -50,7 +48,14 @@ public class ExecutorController {
         String measures="";
         String timeColumn="";
         String timeFormat="";
-        return "dimensiongs="+Arrays.toString(dimensions)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
+        return "dimensions="+String.join(",", dimensions)+"&"+ "sum="+sum+"&" +"measures="+measures+"&" +"timeColumn="+timeColumn+"&" +"timeFormat="+timeFormat;
+    }
+
+    public Map<String,String> generateCreateContent(UserSession userSession, String tablename){
+        Map<String, String> result = new HashMap<>();
+        String dimensions[] = userSession.getEmbeddedExecutor().getTableColumns(tablename);
+        result.put("dimensions", String.join(",", dimensions));
+        return result;
     }
 
     public String getBuildContent() {
@@ -62,6 +67,7 @@ public class ExecutorController {
 
     public Integer progress=0;
     public Integer status=0;
+    String task_id = "";
     @RequestMapping(value = "/node", method = RequestMethod.POST)
     @ResponseBody
     public String generateDriver(@RequestBody final String conf, @Autowired HttpServletRequest request) throws IOException {
@@ -71,6 +77,7 @@ public class ExecutorController {
             @Override
             public void run() {
                 long start = System.currentTimeMillis();
+                long end;
                 Job job = operationParserService.parse(conf);
                 try {
                 try {
@@ -88,24 +95,27 @@ public class ExecutorController {
                     userSession.sendResult(Config.getAddress(), job.getJid(), resultString);
                     System.out.println(resultString);
                     System.out.println("Job Finished");
+                    end = System.currentTimeMillis();
+                    System.out.print("\nRunning time: ");
+                    System.out.println(end - start);
+                    status = 2;
                     //create_table_in_DFM(userSession, job.getJid(),job.getTable());
-                    String task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
+                    task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
                     //createTable
-                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+task_id+"/"+job.getTable()), getCreateContent(userSession, job.getTable()),true);
-                    //buildTable
+                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+task_id+"/"+job.getTable()), generateCreateContent(userSession, job.getTable()));
+
                     userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
                     //getstatus
                     userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
 
+
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
-                    status = 2;
                     progress=100;
                 } catch (HiveTableNotFoundException e1) {
                         userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
                 } catch (Exception e) {
                     e.printStackTrace();
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
-                    System.out.println(System.currentTimeMillis() - start);
                     status = -1;
                 }
                 } catch (MalformedURLException e) {
@@ -117,11 +127,25 @@ public class ExecutorController {
         return "OK";
     }
 
-    @RequestMapping(value = "/list", method = RequestMethod.GET)
+    /*
+    @RequestMapping(,headers = "")
+    public String build(@Autowired HttpServletRequest request) throws  IOException {
+        UserSession userSession = getUserSession(request);
+
+        //buildTable
+        userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
+        //getstatus
+        userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
+
+    }
+    */
+    
+    @RequestMapping(value = "/tables", method = RequestMethod.GET)
     public String getTablelist(@Autowired HttpServletRequest request) throws IOException {
-        System.out.println("GET /list");
+        System.out.println("GET /tables");
         UserSession userSession = getUserSession(request);
         System.out.println("GET UserSession");
+        //userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+"test_4_8_"+String.valueOf(System.currentTimeMillis())+"/"+"output_0024414100_20180408_1513"), generateCreateContent(userSession, "output_0024414100_20180408_1513"));
         return new JSONArray(userSession.getEmbeddedExecutor().getTableNames()).toString();
     }
 
