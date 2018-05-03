@@ -139,10 +139,10 @@ public class ExecutorController {
 
     }
     */
-    
-    @RequestMapping(value = "/tables", method = RequestMethod.GET)
+
+    @RequestMapping(value = "/list", method = RequestMethod.GET)
     public String getTablelist(@Autowired HttpServletRequest request) throws IOException {
-        System.out.println("GET /tables");
+        System.out.println("GET /list");
         UserSession userSession = getUserSession(request);
         System.out.println("GET UserSession");
         //userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+"test_4_8_"+String.valueOf(System.currentTimeMillis())+"/"+"output_0024414100_20180408_1513"), generateCreateContent(userSession, "output_0024414100_20180408_1513"));
