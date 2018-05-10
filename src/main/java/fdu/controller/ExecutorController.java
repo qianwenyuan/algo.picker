@@ -16,7 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import scala.Tuple2;
 
+import javax.annotation.processing.FilerException;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -68,9 +72,21 @@ public class ExecutorController {
     public Integer progress=0;
     public Integer status=0;
     String task_id = "";
+    String log_message="";
     @RequestMapping(value = "/node", method = RequestMethod.POST)
     @ResponseBody
     public String generateDriver(@RequestBody final String conf, @Autowired HttpServletRequest request) throws IOException {
+        File logfile = new File("~/qwy/log.txt");
+        if (!logfile.exists()) {
+            logfile.mkdir();
+        }
+        FileOutputStream out = new FileOutputStream(logfile);
+        try {
+            out.write(new String(String.valueOf(System.currentTimeMillis())+"-- Json: "+conf+"\n").getBytes());
+        } catch (FilerException e) {
+            e.printStackTrace();
+        }
+
         final UserSession userSession = getUserSession(request);
         Config.setAddress(request.getRemoteAddr());
         new Thread(new Runnable() {
@@ -98,6 +114,17 @@ public class ExecutorController {
                     end = System.currentTimeMillis();
                     System.out.print("\nRunning time: ");
                     System.out.println(end - start);
+                    /*
+                    try {
+                        out.write(new String(String.valueOf(System.currentTimeMillis())+"-- Job Finished. Running time: "+
+                                String.valueOf(end-start)+"\n").getBytes());
+                    } catch (FilerException fe) {
+                        fe.printStackTrace();
+                    }
+                    */
+                    
+                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- Job Finished. Running time: "+
+                            String.valueOf(end-start)+"\n");
                     status = 2;
                     //create_table_in_DFM(userSession, job.getJid(),job.getTable());
                     task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
@@ -112,10 +139,26 @@ public class ExecutorController {
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
                     progress=100;
                 } catch (HiveTableNotFoundException e1) {
-                        userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
+                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
+                    /*
+                    try {
+                        out.write(new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n").getBytes());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    */
+                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n");
                 } catch (Exception e) {
                     e.printStackTrace();
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
+                    /*
+                    try {
+                        out.write(new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: Runtime Error\n").getBytes());
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    */
+                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: Runtime Error\n");
                     status = -1;
                 }
                 } catch (MalformedURLException e) {
@@ -123,7 +166,8 @@ public class ExecutorController {
                 }
             }
         }).start();
-
+        out.write(log_message.getBytes());
+        out.close();
         return "OK";
     }
 
