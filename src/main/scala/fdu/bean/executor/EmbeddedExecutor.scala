@@ -12,7 +12,7 @@ import scala.util.Properties.{javaVersion, javaVmName, versionString}
 class EmbeddedExecutor(session: UserSession, out: OutputStream) {
 
   val spark: SparkSession = SparkSession
-      .builder.master("local[*]")
+      .builder//.master("local[*]")
       .appName(s"AlgoPicker - Session: ${session.getSessionID}")
       .enableHiveSupport()
       .getOrCreate()

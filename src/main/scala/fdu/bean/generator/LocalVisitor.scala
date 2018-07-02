@@ -55,7 +55,7 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
   }
 
   @deprecated
-  def visitGroupbyCount(groupby: GroupbyCount): Unit = {
+  def visitGroupBy(groupby: GroupBy): Unit = {
     groupby.getChild match {
       case op if op.isInstanceOf[DataSource] =>
         sql ++= " from " + op.asInstanceOf[DataSource].toSql

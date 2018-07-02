@@ -16,7 +16,7 @@ public interface OperatorVisitor {
 
     //void visitMax(Max max);
     //void visitCount(Count count);
-    void visitGroupbyCount(GroupbyCount groupbyCount);
+    void visitGroupBy(GroupBy groupby);
 
     void visitKMeansModel(KMeansModel model);
 

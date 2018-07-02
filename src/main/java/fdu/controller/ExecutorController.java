@@ -18,10 +18,7 @@ import scala.Tuple2;
 
 import javax.annotation.processing.FilerException;
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
@@ -69,6 +66,12 @@ public class ExecutorController {
         return "startTime="+startTime+"&" +"endTime="+endTime;
     }
 
+    public void write2log(String log_message) throws IOException{
+        BufferedWriter writer = new BufferedWriter(new FileWriter("/root/qwy/log.txt",true));
+        writer.append(log_message);
+        writer.close();
+    }
+
     public Integer progress=0;
     public Integer status=0;
     String task_id = "";
@@ -76,22 +79,14 @@ public class ExecutorController {
     @RequestMapping(value = "/node", method = RequestMethod.POST)
     @ResponseBody
     public String generateDriver(@RequestBody final String conf, @Autowired HttpServletRequest request) throws IOException {
-        File logfile = new File("~/qwy/log.txt");
-        if (!logfile.exists()) {
-            logfile.mkdir();
-        }
-        FileOutputStream out = new FileOutputStream(logfile);
-        try {
-            out.write(new String(String.valueOf(System.currentTimeMillis())+"-- Json: "+conf+"\n").getBytes());
-        } catch (FilerException e) {
-            e.printStackTrace();
-        }
+        //write2log(new String(String.valueOf(System.currentTimeMillis())+"-- Json: "+conf+"\n"));
 
         final UserSession userSession = getUserSession(request);
         Config.setAddress(request.getRemoteAddr());
         new Thread(new Runnable() {
             @Override
             public void run() {
+                System.out.println("\n"+conf+"\n");
                 long start = System.currentTimeMillis();
                 long end;
                 Job job = operationParserService.parse(conf);
@@ -122,18 +117,21 @@ public class ExecutorController {
                         fe.printStackTrace();
                     }
                     */
-                    
-                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- Job Finished. Running time: "+
+
+                    task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
+                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- Job "+task_id+" finished. Running time: "+
                             String.valueOf(end-start)+"\n");
+                    //write2log(log_message);
                     status = 2;
                     //create_table_in_DFM(userSession, job.getJid(),job.getTable());
-                    task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
-                    //createTable
-                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+task_id+"/"+job.getTable()), generateCreateContent(userSession, job.getTable()));
 
-                    userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
+
+                    //createTable
+//                    userSession.makePost(new URL("http://"+ Config.getDFMAddress()+":8080/project/create/"+task_id+"/"+job.getTable()), generateCreateContent(userSession, job.getTable()));
+
+//                    userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
                     //getstatus
-                    userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
+//                    userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
 
 
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
@@ -148,6 +146,7 @@ public class ExecutorController {
                     }
                     */
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n");
+                    //write2log(log_message);
                 } catch (Exception e) {
                     e.printStackTrace();
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
@@ -166,8 +165,7 @@ public class ExecutorController {
                 }
             }
         }).start();
-        out.write(log_message.getBytes());
-        out.close();
+        //write2log(log_message);
         return "OK";
     }
 

@@ -237,7 +237,7 @@ class Max(name: String,
   override def execute(session: UserSession): DataFrame =
     getChild
       .asInstanceOf[CanProduce[DataFrame]]
-      .executeCached(session).agg(org.apache.spark.sql.functions.max(column))
+      .executeCached(session).agg(org.apache.spark.sql.functions.max(column) as "max_"+column)
 
   override def toString: String = "([Max name: " + name + " column: " + column + "]" + getChild + ")"
 
@@ -287,7 +287,7 @@ class Min(name: String,
   override def execute(session: UserSession): DataFrame =
     getChild
       .asInstanceOf[CanProduce[DataFrame]]
-      .executeCached(session).agg(org.apache.spark.sql.functions.min(column))
+      .executeCached(session).agg(org.apache.spark.sql.functions.min(column) as "min_"+column)
 
   override def toString: String = "([Min name: " + name + " column: " + column + "]" + getChild + ")"
 
@@ -337,7 +337,7 @@ class Sum(name: String,
   override def execute(session: UserSession): DataFrame =
     getChild
       .asInstanceOf[CanProduce[DataFrame]]
-      .executeCached(session).agg(org.apache.spark.sql.functions.sum(column))
+      .executeCached(session).agg(org.apache.spark.sql.functions.sum(column) as "sum_"+column)
 
   override def toString: String = "([Sum name: " + name + " column: " + column + "]" + getChild + ")"
 
@@ -387,16 +387,16 @@ class Count(name: String,
   override def execute(session: UserSession): DataFrame =
     getChild
       .asInstanceOf[CanProduce[DataFrame]]
-      .executeCached(session).agg(org.apache.spark.sql.functions.count(column))
+      .executeCached(session).agg(org.apache.spark.sql.functions.count(column) as "count_"+column)
 
-  override def toString: String = "([Count name: " + name + " column: " + column + "]" + getChild + ")"
+  //override def toString: String = "([Count name: " + name + " column: " + column + "]" + getChild + ")"
 
   @throws[ClassCastException]
   override def toSql: String = {
     val left = getChild.asInstanceOf[SqlOperation]
     left match {
-      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " COUNT(" + column + ")"
-      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " COUNT(" + column + ")"
+      case _: DataSource => getChild.asInstanceOf[SqlOperation].toSql + " COUNT " + column + " "
+      case _: Join => getChild.asInstanceOf[SqlOperation].toSql + " COUNT " + column + " "
       case _ => throw new UnsupportedOperationException("Invalid count node")
     }
   }

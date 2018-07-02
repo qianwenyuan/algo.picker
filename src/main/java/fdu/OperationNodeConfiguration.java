@@ -46,7 +46,9 @@ public class OperationNodeConfiguration {
         //classification
         put("naivebayes-model",NaiveBayesModel.class);
         put("naivebayes-predict",NaiveBayesPredict.class);
+        put("decisiontree-model",DecisionTreeClassificationModel.class);
+        put("decisiontree-predict",DecisionTreeClassificationPredict.class);
     }};
-    
+
 
 }
