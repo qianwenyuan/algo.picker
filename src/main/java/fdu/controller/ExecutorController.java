@@ -8,7 +8,9 @@ import fdu.service.operation.operators.CanProduce;
 import fdu.util.ResultSerialization;
 import fdu.util.UserSession;
 import fdu.util.UserSessionPool;
+import org.apache.spark.sql.DataFrameNaFunctions;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -67,7 +69,7 @@ public class ExecutorController {
     }
 
     public void write2log(String log_message) throws IOException{
-        BufferedWriter writer = new BufferedWriter(new FileWriter("/root/qwy/log.txt",true));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.json",true));
         writer.append(log_message);
         writer.close();
     }
@@ -75,6 +77,7 @@ public class ExecutorController {
     public Integer progress=0;
     public Integer status=0;
     String task_id = "";
+    String job_id = "";
     String log_message="";
     @RequestMapping(value = "/node", method = RequestMethod.POST)
     @ResponseBody
@@ -93,6 +96,8 @@ public class ExecutorController {
                 try {
                 try {
                     status = 1;
+                    job_id = job.getJid();
+                    //System.out.print("\njid="+job_id+","+"table="+job.getTable()+"\n");
                     Object res;
                     if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
                         res = userSession.getSparkSession().table(job.getTable());
@@ -117,12 +122,40 @@ public class ExecutorController {
                         fe.printStackTrace();
                     }
                     */
+                    status = 2;
+                    String new_status = new String(job_id+","+status.toString());
+                    try {
+                        boolean if_job_exist = false;
+                        try {
+                            File file = new File("../his_status.txt");
+                            if (file.isFile() && file.exists()) {
+                                BufferedReader reader = new BufferedReader(new FileReader((file)));
+                                String temp = "";
+                                while ((temp = reader.readLine()) != null) {
+                                    String[] kvpairtemp = temp.split(",");
+                                    if (kvpairtemp[0].equals(job_id)) {
+                                        reader.close();
+                                        if_job_exist = true;
+                                    }
+                                }
+                                reader.close();
+                            }
+                        } catch (IOException ex) {ex.printStackTrace();}
+                        if (!if_job_exist) {
+                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
+                            writer.append(new_status + "\n");
+                            writer.close();
+                        }
+                    } catch (FileNotFoundException e) {}
+                    try {
+                        BufferedWriter writer = new BufferedWriter(new FileWriter("../result_list.txt", true));
+                        writer.append(job.getTable()+"\n");
+                        writer.close();
+                    } catch (Exception e) {}
 
                     task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
-                    log_message = new String(String.valueOf(System.currentTimeMillis())+"-- Job "+task_id+" finished. Running time: "+
-                            String.valueOf(end-start)+"\n");
                     //write2log(log_message);
-                    status = 2;
+
                     //create_table_in_DFM(userSession, job.getJid(),job.getTable());
 
 
@@ -137,6 +170,32 @@ public class ExecutorController {
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
                     progress=100;
                 } catch (HiveTableNotFoundException e1) {
+                    status = -1;
+                    String new_status = new String(job_id+","+status.toString());
+                    try {
+                        boolean if_job_exist = false;
+                        try {
+                            File file = new File("../his_status.txt");
+                            if (file.isFile() && file.exists()) {
+                                BufferedReader reader = new BufferedReader(new FileReader((file)));
+                                String temp = "";
+                                while ((temp = reader.readLine()) != null) {
+                                    String[] kvpairtemp = temp.split(",");
+                                    if (kvpairtemp[0].equals(job_id)) {
+                                        reader.close();
+                                        if_job_exist = true;
+                                    }
+                                }
+                                reader.close();
+                            }
+                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
+                        if (!if_job_exist) {
+                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
+                            writer.append(new_status + "\n");
+                            writer.close();
+                        }
+                    } catch (IOException e) {}
+
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
                     /*
                     try {
@@ -148,6 +207,32 @@ public class ExecutorController {
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n");
                     //write2log(log_message);
                 } catch (Exception e) {
+                    status = -1;
+                    String new_status = new String(job_id+","+status.toString());
+                    try {
+                        boolean if_job_exist = false;
+                        try {
+                            File file = new File("../his_status.txt");
+                            if (file.isFile() && file.exists()) {
+                                BufferedReader reader = new BufferedReader(new FileReader((file)));
+                                String temp = "";
+                                while ((temp = reader.readLine()) != null) {
+                                    String[] kvpairtemp = temp.split(",");
+                                    if (kvpairtemp[0].equals(job_id)) {
+                                        reader.close();
+                                        if_job_exist = true;
+                                    }
+                                }
+                                reader.close();
+                            }
+                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
+                        if (!if_job_exist) {
+                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
+                            writer.append(new_status + "\n");
+                            writer.close();
+                        }
+                    } catch (IOException e1) {}
+
                     e.printStackTrace();
                     userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
                     /*
@@ -158,9 +243,37 @@ public class ExecutorController {
                     }
                     */
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: Runtime Error\n");
-                    status = -1;
+
                 }
                 } catch (MalformedURLException e) {
+                    status = -1;
+                    String new_status = new String(job_id+","+status.toString());
+                    try {
+                        boolean if_job_exist = false;
+                        try {
+                            File file = new File("../his_status.txt");
+                            if (file.isFile() && file.exists()) {
+                                BufferedReader reader = new BufferedReader(new FileReader((file)));
+                                String temp = "";
+                                while ((temp = reader.readLine()) != null) {
+                                    String[] kvpairtemp = temp.split(",");
+                                    if (kvpairtemp[0].equals(job_id)) {
+                                        reader.close();
+                                        if_job_exist = true;
+                                    }
+                                }
+                                reader.close();
+                            }
+                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
+                        if (!if_job_exist) {
+                            try {
+                                BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
+                                writer.append(new_status + "\n");
+                                writer.close();
+                            } catch (Exception e2) {e2.printStackTrace();}
+                        }
+                    } catch (Exception e1) {}
+
                     e.printStackTrace();
                 }
             }
@@ -219,8 +332,49 @@ public class ExecutorController {
     }
 
     @RequestMapping(value = "/statusquery", method = RequestMethod.POST)
-    public String statusReport(@Autowired HttpServletRequest request) throws IOException{
+    public String statusReport(@RequestBody String jid, @Autowired HttpServletRequest request) throws IOException{
         //UserSession userSession = getUserSession(request);
-        return status.toString()+"/"+progress.toString()+"%";
+        if (jid == job_id) {
+            return status.toString();
+        }
+        else {
+            try {
+                File file = new File("../his_status.txt");
+                if (file.isFile() && file.exists()) {
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    String temp = "";
+                    while ((temp = reader.readLine()) != null) {
+                        String[] kvpairtemp = temp.split(",");
+                        if (kvpairtemp[0].equals(jid)) {
+                            reader.close();
+                            return kvpairtemp[1];
+                        }
+                    }
+                    reader.close();
+                }
+            } catch (FileNotFoundException ex) {ex.printStackTrace();}
+            return "-2";
+        }
+    }
+
+    @RequestMapping(value = "/table", method = RequestMethod.POST)
+    public String gettable(@RequestBody String table_name, @Autowired HttpServletRequest request) throws IOException{
+        UserSession userSession = getUserSession(request);
+        return userSession.getEmbeddedExecutor().getTable(table_name);
+    }
+
+    @RequestMapping(value = "/resultlist", method = RequestMethod.GET)
+    public String get_result_list(@Autowired HttpServletRequest request) throws IOException {
+        StringBuilder jsonStr = new StringBuilder();
+        String list = "";
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader((new File("../result_list.txt"))));
+            String temp = "";
+            while ((temp = reader.readLine())!=null) {
+                list = list+temp+"/";
+            }
+            reader.close();
+        } catch (FileNotFoundException ex) {ex.printStackTrace();}
+        return list;
     }
 }
