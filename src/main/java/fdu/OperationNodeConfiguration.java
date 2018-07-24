@@ -1,6 +1,7 @@
 package fdu;
 
 import fdu.service.operation.operators.*;
+import javassist.runtime.Desc;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,30 +25,48 @@ public class OperationNodeConfiguration {
         put("sql-join", Join.class);
         put("project", Project.class);
         put("filter", Filter.class);
-        put("kmeans-model", KMeansModel.class);
         // Newly added
-        put("sample", Sample.class);
-        put("lda-model", LDAModel.class);
-        put("randomforest-model", RandomForestModel.class);
-        put("randomforest-predict", RandomForestPredict.class);
-        put("word2vec", Word2Vec.class);
+        put("sample", Sample.class); //
+        put("lda-model", LDAModel.class); //
+        put("word2vec", Word2Vec.class); //
+        put("onehot", OneHotEncoder.class);
+        put("vector-asm", VectorAssembler.class); //
+
+        // Regression
+        put("linear-model", LinearRegressionModel.class);
+        put("linear-predict", LinearRegressionPredict.class);
         put("lr-model", LogisticRegressionModel.class);
         put("lr-predict", LogisticRegressionPredict.class);
-        put("onehot", OneHotEncoder.class);
-        put("vector-asm", VectorAssembler.class);
-        // Added by qwy
-        //aggregation
+
+        //sql
         put("groupby", GroupBy.class);
         put("max", Max.class);
         put("min", Min.class);
         put("sum", Sum.class);
         put("count", Count.class);
+        put("avg", Avg.class);
         put("topn", TopN.class);
+        put("asc", Asc.class);
+        put("desc", Desc.class);
+        put("corr", Corr.class);
+        put("column", Column.class);
+        put("sin", Sin.class);
+        put("asin", Asin.class);
+        put("cos", Cos.class);
+        put("acos", Acos.class);
+        put("tan", Tan.class);
+        put("atan", Atan.class);
+
         //classification
         put("naivebayes-model",NaiveBayesModel.class);
         put("naivebayes-predict",NaiveBayesPredict.class);
         put("decisiontree-model",DecisionTreeClassificationModel.class);
         put("decisiontree-predict",DecisionTreeClassificationPredict.class);
+        put("randomforest-model", RandomForestModel.class);
+        put("randomforest-predict", RandomForestPredict.class);
+
+        //clusstering
+        put("kmeans-model", KMeansModel.class); //
     }};
 
 
