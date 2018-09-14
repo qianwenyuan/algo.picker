@@ -55,13 +55,13 @@ class LocalVisitor(session: UserSession) extends OperatorVisitor {
   }
 
   @deprecated
-  def visitGroupBy(groupby: GroupBy): Unit = {
+  def visitGroupBy(groupby: GroupBy_Count): Unit = {
     groupby.getChild match {
       case op if op.isInstanceOf[DataSource] =>
         sql ++= " from " + op.asInstanceOf[DataSource].toSql
-        " groupby " + groupby.getColumn + " "
+        " groupby " + " "
       case op if op.isInstanceOf[Join] =>
-        sql ++= " groupby " + groupby.getColumn
+        sql ++= " groupby "
       case _ =>
         throw new AssertionError("Not handled")
     }

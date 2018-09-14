@@ -23,6 +23,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 /**
@@ -32,6 +35,9 @@ import java.util.*;
 public class ExecutorController {
 
     private final OperationParserService operationParserService;
+
+    public static String ip=Config.DEFAULT_FUCK_ADDRESS;
+    public static String port=Config.DEFAULT_FUCK_PORT;
 
     @Autowired
     public ExecutorController(OperationParserService operationParserService) {
@@ -68,10 +74,76 @@ public class ExecutorController {
         return "startTime="+startTime+"&" +"endTime="+endTime;
     }
 
-    public void write2log(String log_message) throws IOException{
-        BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.json",true));
-        writer.append(log_message);
-        writer.close();
+    public void write2log(String path, String log_message) throws IOException{
+        Files.write(Paths.get(path), new String(log_message+"\n").getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+//
+//        BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt",true));
+//        writer.append(log_message);
+//        writer.close();
+    }
+
+    public JSONArray trans(JSONArray jsarr) {
+        JSONObject jobj1 = (JSONObject) jsarr.getJSONObject(0).get("schema");
+
+        JSONArray hive_table_meta = new JSONArray();
+        JSONArray jobj2 = (JSONArray) jobj1.get("fields");
+        for (Object obj:jobj2) {
+            JSONObject jobj = (JSONObject) obj;
+            JSONObject tempobj = new JSONObject();
+            boolean flag = true;
+            if (jobj.has("name")&&jobj.has("type")) {
+                tempobj.put("name",jobj.get("name"));
+                tempobj.put("type", jobj.get("type"));
+                hive_table_meta.put(tempobj);
+            }
+        }
+        return hive_table_meta;
+    }
+
+    public String createContent(Job job, UserSession userSession, String tag) {
+        String id = job.getJid();
+        String filename = job.getTable();
+        JSONObject jo = new JSONObject();
+        jo.put("tablename",job.getTable());
+        jo.put("splitname",",");
+        JSONArray hive_table_list = new JSONArray();
+
+        JSONArray array = new JSONArray("["+filename+"]");
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            list.add(array.getString(i));
+        }
+        String[] tables = list.toArray(new String[list.size()]);
+        Tuple2<String, String>[] schemas = userSession.getEmbeddedExecutor().getTableSchemas(tables);
+        JSONArray ans = new JSONArray();
+        for (Tuple2<String, String> schema : schemas) {
+            JSONObject obj = new JSONObject();
+            obj.put("tableName", schema._1());
+            obj.put("schema", new JSONObject(schema._2()));
+            ans.put(obj);
+        }
+        System.out.println(tables[0]);
+        System.out.println(ans.toString());
+        ans = trans(ans);
+
+
+        JSONObject jobj = new JSONObject();
+        jobj.put("tablename",filename);
+        jobj.put("splitname",",");
+        jobj.put("hive_table_meta",ans);
+
+        hive_table_list = new JSONArray("["+jobj+"]");
+        JSONObject joo = new JSONObject();
+        joo.put("id",id);
+        joo.put("filename",filename);
+        joo.put("hive_table_list",hive_table_list);
+        joo.put("tag",tag);
+
+        String result = joo.toString();
+
+        System.out.println(result);
+
+        return result;
     }
 
     public Integer progress=0;
@@ -79,6 +151,8 @@ public class ExecutorController {
     String task_id = "";
     String job_id = "";
     String log_message="";
+    String resultPath = "result_list.txt";
+    String hisPath = "his_status.txt";
     @RequestMapping(value = "/node", method = RequestMethod.POST)
     @ResponseBody
     public String generateDriver(@RequestBody final String conf, @Autowired HttpServletRequest request) throws IOException {
@@ -93,6 +167,7 @@ public class ExecutorController {
                 long start = System.currentTimeMillis();
                 long end;
                 Job job = operationParserService.parse(conf);
+
                 try {
                 try {
                     status = 1;
@@ -114,6 +189,14 @@ public class ExecutorController {
                     end = System.currentTimeMillis();
                     System.out.print("\nRunning time: ");
                     System.out.println(end - start);
+
+                    /// !!!!!!!!!
+
+
+                    userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
+                            createContent(job, userSession, "true"), true);
+
+                    /// !!!!!!!!!
                     /*
                     try {
                         out.write(new String(String.valueOf(System.currentTimeMillis())+"-- Job Finished. Running time: "+
@@ -127,8 +210,8 @@ public class ExecutorController {
                     try {
                         boolean if_job_exist = false;
                         try {
-                            File file = new File("../his_status.txt");
-                            if (file.isFile() && file.exists()) {
+                            File file = new File(hisPath);
+                            if (file.exists() && file.isFile()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
                                 String temp = "";
                                 while ((temp = reader.readLine()) != null) {
@@ -142,16 +225,23 @@ public class ExecutorController {
                             }
                         } catch (IOException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
-                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
-                            writer.append(new_status + "\n");
-                            writer.close();
+//                            FileWriter writer = new FileWriter("~/his_status.txt", true);
+//                            writer.append(new_status + "\n");
+//                            writer.close();
+                            write2log(hisPath, new_status);
+//                            Files.write(Paths.get("~/his_status.txt"), new_status.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
                         }
                     } catch (FileNotFoundException e) {}
+                    System.out.println("Start writing result!");
                     try {
-                        BufferedWriter writer = new BufferedWriter(new FileWriter("../result_list.txt", true));
-                        writer.append(job.getTable()+"\n");
-                        writer.close();
-                    } catch (Exception e) {}
+                        write2log(resultPath, job.getTable());
+//                        BufferedWriter writer = new BufferedWriter(new FileWriter(resultPath, true));
+//                        System.out.println("Write result success!");
+//                        writer.append(job.getTable()+"\n");
+//                        writer.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
                     task_id = job.getJid()+"_"+String.valueOf(System.currentTimeMillis());
                     //write2log(log_message);
@@ -167,15 +257,18 @@ public class ExecutorController {
 //                    userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
 
 
-                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
+                    //userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
                     progress=100;
                 } catch (HiveTableNotFoundException e1) {
+                    e1.printStackTrace();
+                    userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
+                            createContent(job, userSession, "false"), true);
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
                     try {
                         boolean if_job_exist = false;
                         try {
-                            File file = new File("../his_status.txt");
+                            File file = new File(hisPath);
                             if (file.isFile() && file.exists()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
                                 String temp = "";
@@ -190,13 +283,14 @@ public class ExecutorController {
                             }
                         } catch (FileNotFoundException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
-                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
-                            writer.append(new_status + "\n");
-                            writer.close();
+                            write2log(hisPath, new_status);
+//                            BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt", true));
+//                            writer.append(new_status + "\n");
+//                            writer.close();
                         }
                     } catch (IOException e) {}
 
-                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
+                    //userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
                     /*
                     try {
                         out.write(new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n").getBytes());
@@ -207,12 +301,15 @@ public class ExecutorController {
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n");
                     //write2log(log_message);
                 } catch (Exception e) {
+                    e.printStackTrace();
+                    userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
+                            createContent(job, userSession, "false"), false);
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
                     try {
                         boolean if_job_exist = false;
                         try {
-                            File file = new File("../his_status.txt");
+                            File file = new File(hisPath);
                             if (file.isFile() && file.exists()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
                                 String temp = "";
@@ -227,9 +324,10 @@ public class ExecutorController {
                             }
                         } catch (FileNotFoundException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
-                            BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
-                            writer.append(new_status + "\n");
-                            writer.close();
+                            write2log(hisPath,new_status);
+//                            BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt", true));
+//                            writer.append(new_status + "\n");
+//                            writer.close();
                         }
                     } catch (IOException e1) {}
 
@@ -246,12 +344,13 @@ public class ExecutorController {
 
                 }
                 } catch (MalformedURLException e) {
+
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
                     try {
                         boolean if_job_exist = false;
                         try {
-                            File file = new File("../his_status.txt");
+                            File file = new File(hisPath);
                             if (file.isFile() && file.exists()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
                                 String temp = "";
@@ -267,9 +366,10 @@ public class ExecutorController {
                         } catch (FileNotFoundException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
                             try {
-                                BufferedWriter writer = new BufferedWriter(new FileWriter("../his_status.txt", true));
-                                writer.append(new_status + "\n");
-                                writer.close();
+                                write2log(hisPath,new_status);
+//                                BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt", true));
+//                                writer.append(new_status + "\n");
+//                                writer.close();
                             } catch (Exception e2) {e2.printStackTrace();}
                         }
                     } catch (Exception e1) {}
@@ -339,7 +439,7 @@ public class ExecutorController {
         }
         else {
             try {
-                File file = new File("../his_status.txt");
+                File file = new File(hisPath);
                 if (file.isFile() && file.exists()) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     String temp = "";
@@ -368,7 +468,7 @@ public class ExecutorController {
         StringBuilder jsonStr = new StringBuilder();
         String list = "";
         try {
-            BufferedReader reader = new BufferedReader(new FileReader((new File("../result_list.txt"))));
+            BufferedReader reader = new BufferedReader(new FileReader((new File(resultPath))));
             String temp = "";
             while ((temp = reader.readLine())!=null) {
                 list = list+temp+"/";

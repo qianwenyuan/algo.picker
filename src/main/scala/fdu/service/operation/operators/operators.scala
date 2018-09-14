@@ -4,10 +4,10 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation._
 import fdu.util.UserSession
 import org.apache.spark.ml._
-import org.apache.spark.ml.linalg.DenseVector
+import org.apache.spark.mllib.feature.{PCA, PCAModel, VectorTransformer}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.json.JSONObject
+import org.apache.spark.rdd.RDD
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 
@@ -138,6 +138,15 @@ class VectorAssembler(name: String,
     val state = Seq(super.hashCode(), columns, outputCol)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
+}
+
+object VectorAssembler extends CanGenFromJson {
+  override def newInstance(obj: JSONObject) = new VectorAssembler(
+    obj.getString("name"),
+    obj.getString("type"),
+    obj.getString("columns"),
+    obj.getString("outputCol")
+  )
 }
 
 class RandomForestModel(name: String,
@@ -334,6 +343,106 @@ object LogisticRegressionPredict extends CanGenFromJson {
     )
 }
 
+class LinearRegressionModel(name: String,
+                              _type: String,
+                              @BeanProperty val labelCol: String,
+                              @BeanProperty val numMaxIter: Int)
+  extends UnaryOperation(name, _type)
+    with CanProduce[Model[classification.LogisticRegressionModel]] {
+
+  override def execute(user: UserSession): classification.LogisticRegressionModel = {
+    try
+      classification.LogisticRegressionModel.load(getName)
+    catch {
+      case _: Any =>
+        val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+        val lr = new classification.LogisticRegression()
+          .setLabelCol(labelCol)
+          .setFeaturesCol("features")
+          .setMaxIter(numMaxIter)
+
+        val trainedModel = lr.fit(df)
+        trainedModel
+    }
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: LogisticRegressionModel =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        labelCol == that.labelCol &&
+        numMaxIter == that.numMaxIter
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[LogisticRegressionModel]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), labelCol, numMaxIter)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+
+object LinearRegressionModel extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new LogisticRegressionModel(
+      name = obj.getString("name"),
+      labelCol = obj.getString("labelCol"),
+      numMaxIter = obj.getInt("numMaxIter"),
+      _type = obj.getString("type")
+    )
+}
+
+class LinearRegressionPredict(name: String,
+                                _type: String)
+  extends BinaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def accept(visitor: OperatorVisitor): Unit = ???
+
+  override def execute(session: UserSession): DataFrame = {
+    // UDF
+    //    val probString = "probability"
+    //
+    //    val transferProbabilityFunc : DenseVector => Double  = _.values.last
+    //
+    //    def transferProbability(dataFrame: DataFrame): DataFrame = {
+    //      if (dataFrame.columns.contains(probString)) {
+    //        try {
+    //          import org.apache.spark.sql.functions._
+    //          dataFrame.withColumn("regularProbability", udf(transferProbabilityFunc).apply(col(probString)))
+    //        } finally {
+    //          dataFrame
+    //        }
+    //      } else dataFrame
+    //    }
+
+    val (model, table) =
+      getLeft match {
+        case m: LogisticRegressionModel =>
+          (m.executeCached(session),
+            getRight.asInstanceOf[CanProduce[DataFrame]].executeCached(session))
+        case t: CanProduce[DataFrame] =>
+          (getRight.asInstanceOf[CanProduce[Model[classification.LogisticRegressionModel]]].executeCached(session),
+            t.executeCached(session))
+      }
+
+    // transferProbability(model.transform(table))
+    model.transform(table)
+  }
+
+}
+
+object LinearRegressionPredict extends CanGenFromJson {
+  override def newInstance(obj: JSONObject): Operation =
+    new LogisticRegressionPredict(
+      name = obj.getString("name"),
+      _type = obj.getString("type")
+    )
+}
+
 class OneHotEncoder(name: String,
                     _type: String,
                     @BeanProperty val features: String)
@@ -514,9 +623,9 @@ object Word2Vec extends CanGenFromJson {
 //TODO
 class NaiveBayesModel(name: String,
                       _type: String,
-                      @BeanProperty val labelcolumn: String,
+                      @BeanProperty val label: String,
                       @BeanProperty val smoothing: Double,
-                      @BeanProperty val modeltype: String)
+                      @BeanProperty val modelType: String)
   extends UnaryOperation(name, _type)
     with CanProduce[Model[classification.NaiveBayesModel]] {
 
@@ -527,10 +636,10 @@ class NaiveBayesModel(name: String,
       case _: Any =>
         val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
         val nb = new classification.NaiveBayes()
-          .setLabelCol(labelcolumn)
+          .setLabelCol(label)
           .setFeaturesCol("features")
           .setSmoothing(smoothing)
-          .setModelType(modeltype)
+          .setModelType(modelType)
 
         val trainedModel = nb.fit(df)
         trainedModel
@@ -543,16 +652,16 @@ class NaiveBayesModel(name: String,
     case that: NaiveBayesModel =>
       super.equals(that) &&
         (that canEqual this) &&
-        labelcolumn == that.labelcolumn &&
+        label == that.label &&
         smoothing == that.smoothing &&
-        modeltype == that.modeltype
+        modelType == that.modelType
     case _ => false
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[NaiveBayesModel]
 
   override def hashCode(): Int = {
-    val state = Seq(super.hashCode(), labelcolumn, smoothing, modeltype)
+    val state = Seq(super.hashCode(), label, smoothing, modelType)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 }
@@ -561,9 +670,9 @@ object NaiveBayesModel extends CanGenFromJson {
   override def newInstance(obj: JSONObject): Operation =
     new NaiveBayesModel(
       name = obj.getString("name"),
-      labelcolumn = obj.getString("labelcolumn"),
+      label = obj.getString("label"),
       smoothing = obj.getDouble("smoothing"),
-      modeltype = obj.getString("modeltype"),
+      modelType = obj.getString("modelType"),
       _type = obj.getString("type")
     )
 }
@@ -599,7 +708,7 @@ object NaiveBayesPredict extends CanGenFromJson {
 
 class DecisionTreeClassificationModel(name: String,
                                     _type: String,
-                                    @BeanProperty val labelcolumn: String)
+                                    @BeanProperty val labelColumn: String)
   extends UnaryOperation(name, _type)
     with CanProduce[Model[classification.DecisionTreeClassificationModel]] {
 
@@ -610,7 +719,7 @@ class DecisionTreeClassificationModel(name: String,
       case _: Any =>
         val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
         val nb = new classification.DecisionTreeClassifier()
-          .setLabelCol(labelcolumn)
+          .setLabelCol(labelColumn)
           .setFeaturesCol("features")
           .setImpurity("entropy")
 
@@ -625,14 +734,14 @@ class DecisionTreeClassificationModel(name: String,
     case that: DecisionTreeClassificationModel =>
       super.equals(that) &&
         (that canEqual this) &&
-        labelcolumn == that.labelcolumn
+        labelColumn == that.labelColumn
     case _ => false
   }
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[NaiveBayesModel]
 
   override def hashCode(): Int = {
-    val state = Seq(super.hashCode(), labelcolumn)
+    val state = Seq(super.hashCode(), labelColumn)
     state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 }
@@ -641,7 +750,7 @@ object DecisionTreeClassificationModel extends CanGenFromJson {
   override def newInstance(obj: JSONObject): Operation =
     new DecisionTreeClassificationModel(
       name = obj.getString("name"),
-      labelcolumn = obj.getString("labelcolumn"),
+      labelColumn = obj.getString("labelColumn"),
       _type = obj.getString("type")
     )
 }
@@ -674,3 +783,41 @@ object DecisionTreeClassificationPredict extends CanGenFromJson {
       _type = obj.getString("type")
     )
 }
+
+class PCAModel(name: String,
+          _type: String,
+          @BeanProperty val k: Int)
+  extends UnaryOperation(name, _type)
+    with CanProduce[DataFrame] {
+
+  override def execute(user: UserSession): DataFrame = {
+    val df = getChild.asInstanceOf[CanProduce[DataFrame]].executeCached(user)
+    val data = {
+      df.asInstanceOf[RDD[org.apache.spark.mllib.regression.LabeledPoint]]
+    }
+
+
+    val trainedModel = {
+      new PCA(k).fit(data.map(_.features))
+    }
+    trainedModel.toString().asInstanceOf[DataFrame]
+  }
+
+  override def accept(visitor: OperatorVisitor) = ??? // Leave unimplemented
+
+  override def equals(other: Any): Boolean = other match {
+    case that: PCAModel =>
+      super.equals(that) &&
+        (that canEqual this) &&
+        k == that.k
+    case _ => false
+  }
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[PCAModel]
+
+  override def hashCode(): Int = {
+    val state = Seq(super.hashCode(), k)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
+}
+

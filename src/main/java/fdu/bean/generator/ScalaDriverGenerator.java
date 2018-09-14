@@ -26,14 +26,14 @@ public class ScalaDriverGenerator implements OperatorSourceGenerator {
     }
     */
     @Override
-    public void visitGroupBy(GroupBy groupby) {
+    public void visitGroupBy(GroupBy_Count groupby) {
         Operation op = groupby.getChild();
         if (op instanceof DataSource) {
             String alias = ((DataSource) op).getAlias();
             scalaProgram += "from " + ((DataSource) op).toSql() +
-                    "groupby " + groupby.getColumn() + " count";
+                    "groupby " +" count";
         } else if (op instanceof Join) {
-            scalaProgram += "groupby " + groupby.getColumn()+" count";
+            scalaProgram += "groupby " + " count";
         } else {
             throw new AssertionError("Not Handled.");
         }

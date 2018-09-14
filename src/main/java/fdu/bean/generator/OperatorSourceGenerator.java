@@ -1,6 +1,6 @@
 package fdu.bean.generator;
 
-import fdu.service.operation.operators.GroupBy;
+import fdu.service.operation.operators.GroupBy_Count;
 
 /**
  * Created by slade on 2016/11/24.
@@ -13,7 +13,7 @@ public interface OperatorSourceGenerator  extends OperatorVisitor {
         scalaProgram += "count"
     }
     */
-    void visitGroupBy(GroupBy groupby);
+    void visitGroupBy(GroupBy_Count groupby);
 
     String generate();
 }

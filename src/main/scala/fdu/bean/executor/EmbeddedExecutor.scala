@@ -4,10 +4,13 @@ import java.io.OutputStream
 
 import fdu.bean.generator.LocalVisitor
 import fdu.util.UserSession
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.json.JSONArray
 
 import scala.tools.nsc.interpreter.Results
 import scala.util.Properties.{javaVersion, javaVmName, versionString}
+import scala.util.parsing.json.JSONObject
 
 class EmbeddedExecutor(session: UserSession, out: OutputStream) {
 
@@ -140,6 +143,44 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
   def tableExists(table: String): Boolean = getTableNames.contains(table)
 
   def getTableNames: Array[String] = spark.catalog.listTables().collect().map(_.name)
+
+  def getTable(tablename: String): String = {
+    var data : String = new String(spark.sqlContext.sql("SELECT * FROM "+tablename).limit(10000).cache().collectAsList().toString())
+
+    if (tablename.indexOf("request").equals(-1)==false) {
+      data = data.replace(':', '-')
+      data = data.replace('/', '-')
+      var i: Int = 0
+      var str: String = ""
+      while (i < data.length) {
+        if (i > 0 && data.charAt(i).equals('-')) {
+          str = str + '-'
+          var sum: Int = 0
+          while (i + 1 < data.length && data.charAt(i + 1).equals(',') == false) {
+            i = i + 1
+            if (data.charAt(i).equals('-')) sum = 1
+            if (sum == 0) str = str + data.charAt(i)
+
+          }
+          //        var sb: StringBuffer = new StringBuffer()
+          //        sb.append(data).insert(i,'\\')
+          //        data = sb.toString()
+          //        i=i+1
+        }
+        else str = str + data.charAt(i)
+        i = i + 1
+      }
+      data = str
+    }
+    System.out.println(data)
+    val ret = new JSONObject(Map(
+      "columns" -> new JSONArray(getTableColumns(tablename)),
+      "data" -> new JSONArray(data),
+      "count" -> new JSONArray(spark.sqlContext.sql("SELECT COUNT(*) FROM "+tablename).cache().collectAsList().toString())
+    ))
+    ret.toString()
+//    "Columns:"+new JSONArray(getTableColumns(tablename)).toString()+";\n"+"Data:"+spark.sqlContext.sql("SELECT * FROM "+tablename).limit(10000).cache().collectAsList().toString()+";\n"+"Count:"+spark.sqlContext.sql("SELECT COUNT(*) FROM "+tablename).cache().collectAsList().toString()
+  }
 
   def getTableColumns(tablename: String): Array[String] = spark.catalog.listColumns(tablename).collect().map(_.name);
 

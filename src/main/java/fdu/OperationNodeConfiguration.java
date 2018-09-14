@@ -33,29 +33,37 @@ public class OperationNodeConfiguration {
         put("vector-asm", VectorAssembler.class); //
 
         // Regression
-        put("linear-model", LinearRegressionModel.class);
-        put("linear-predict", LinearRegressionPredict.class);
-        put("lr-model", LogisticRegressionModel.class);
-        put("lr-predict", LogisticRegressionPredict.class);
+        put("linear-regression-model", LinearRegressionModel.class);
+        put("linear-regression-predict", LinearRegressionPredict.class);
+        put("logistic-regression-model", LogisticRegressionModel.class);
+        put("logistic-regression-predict", LogisticRegressionPredict.class);
 
-        //sql
-        put("groupby", GroupBy.class);
+
+        //aggregation
+        put("groupby-count", GroupBy_Count.class);
+        put("groupby-max", GroupBy_Max.class);
+        put("groupby-sum", GroupBy_Sum.class);
         put("max", Max.class);
         put("min", Min.class);
         put("sum", Sum.class);
+        put("column", Column.class);
         put("count", Count.class);
+        put("count-distinct", Count_distinct.class);
         put("avg", Avg.class);
         put("topn", TopN.class);
-        put("asc", Asc.class);
-        put("desc", Desc.class);
+        put("collect_set", Collect_set.class);
+        put("collect_list", Collect_list.class);
         put("corr", Corr.class);
-        put("column", Column.class);
-        put("sin", Sin.class);
-        put("asin", Asin.class);
-        put("cos", Cos.class);
-        put("acos", Acos.class);
-        put("tan", Tan.class);
-        put("atan", Atan.class);
+        put("covar-pop", Covar_pop.class);
+        put("covar-samp", Covar_sample.class);
+        put("var-pop", Var_pop.class);
+        put("var-samp", Var_sample.class);
+        put("stddev-pop", Stddev_pop.class);
+        put("stddev-samp", Stddev_sample.class);
+        put("kurtosis", Kurtosis.class);
+        put("skewness", Skewness.class);
+        put("union", Union.class);
+
 
         //classification
         put("naivebayes-model",NaiveBayesModel.class);

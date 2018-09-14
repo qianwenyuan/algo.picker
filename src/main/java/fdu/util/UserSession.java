@@ -201,7 +201,7 @@ public class UserSession {
 
             http.setFixedLengthStreamingMode(length);
             if (isForm)
-                http.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+                http.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             http.connect();
             try (OutputStream os = http.getOutputStream()) {
                 os.write(out);
