@@ -26,6 +26,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.*;
 import java.util.*;
 
 /**
@@ -458,9 +459,82 @@ public class ExecutorController {
     }
 
     @RequestMapping(value = "/table", method = RequestMethod.POST)
-    public String gettable(@RequestBody String table_name, @Autowired HttpServletRequest request) throws IOException{
-        UserSession userSession = getUserSession(request);
-        return userSession.getEmbeddedExecutor().getTable(table_name);
+    public String gettable(@RequestBody String table_name, @Autowired HttpServletRequest request) throws IOException, SQLException {
+//        UserSession userSession = getUserSession(request);
+//        return userSession.getEmbeddedExecutor().getTable(table_name);
+//        System.out.println(gettable(table_name,request));
+
+        Connection con = DriverManager.getConnection("jdbc:hive2://localhost:10010/default;AuthMech=0;transportMode=binary");
+        Statement stmt = con.createStatement();
+        JSONObject ans = new JSONObject();
+
+
+        String sql = "desc "+table_name;
+        System.out.println("Running: " + sql);
+        ResultSet res = stmt.executeQuery(sql);
+        JSONArray columns = new JSONArray();
+        res.next();
+        columns.put(res.getString(1));
+        while (res.next()){
+            columns.put(res.getString(1));
+        }
+
+
+//        get rows
+        sql = "select * from "+table_name+" limit 20000";
+        System.out.println("Running: " + sql);
+        res = stmt.executeQuery(sql);
+
+        res.next();
+        JSONArray data=new JSONArray();
+//        ResultSetMetaData rsmd = res.getMetaData();
+        Integer columncount = res.getMetaData().getColumnCount();
+        JSONArray row=new JSONArray();
+        Double prob = 0.0;
+        for (int i=1;i<=columncount;++i) {
+            row.put(res.getString(i));
+//            if (res.getString(i).contains("values"))
+//                System.out.println(i);
+        }
+        if (table_name.contains("lr_predict")) {
+            columns.put("prob");
+            JSONObject jobj = new JSONObject(res.getString(columncount-1));
+//            System.out.println("\n"+jobj.toString()+"\n");
+            JSONArray jarr = jobj.getJSONArray("values");
+            prob = (Double)jarr.getDouble(1);
+            row.put(prob);
+        }
+
+//        row+=res.getString(columncount);
+        data.put(row);
+        Integer count=1;
+        while (res.next()) {
+            row=new JSONArray();
+//            rsmd = res.getMetaData();
+            for (int i=1;i<=columncount;++i) {
+                row.put(res.getString(i));
+            }
+            if (table_name.contains("lr_predict")) {
+                JSONObject jobj = new JSONObject(res.getString(columncount-1));
+//                System.out.println("\n"+jobj.toString()+"\n");
+                JSONArray jarr = jobj.getJSONArray("values");
+                prob = (Double)jarr.getDouble(1);
+                row.put(prob);
+            }
+//            row+=res.getString(columncount)+"]";
+            data.put(row);
+            count++;
+        }
+//        System.out.println(data);
+//        String scount = count.toString();
+        ans.put("columns",columns);
+        ans.put("data",data);
+        ans.put("count",count);
+
+//        System.out.println(ans.toString());
+
+        con.close();
+        return ans.toString();
     }
 
     @RequestMapping(value = "/resultlist", method = RequestMethod.GET)
