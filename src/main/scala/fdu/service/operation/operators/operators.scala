@@ -4,6 +4,7 @@ import fdu.bean.generator.OperatorVisitor
 import fdu.service.operation._
 import fdu.util.UserSession
 import org.apache.spark.ml._
+import org.apache.spark.ml.linalg.SparseVector
 import org.apache.spark.mllib.feature.{PCA, PCAModel, VectorTransformer}
 import org.apache.spark.sql.DataFrame
 import org.json.JSONObject
@@ -330,7 +331,14 @@ class LogisticRegressionPredict(name: String,
       }
 
     // transferProbability(model.transform(table))
-    model.transform(table)
+    val transformed = model.transform(table)
+
+    import org.apache.spark.sql.functions._
+    val firstelement = udf((v: org.apache.spark.ml.linalg.Vector) => v(0))
+
+    transformed.withColumn("prob", firstelement(col("probability")))
+        .drop("probability")
+      .drop("features").drop("rawprediction")
   }
 
 }
@@ -430,7 +438,13 @@ class LinearRegressionPredict(name: String,
       }
 
     // transferProbability(model.transform(table))
-    model.transform(table)
+    val transformed = model.transform(table)
+    import org.apache.spark.sql.functions._
+    val firstelement = udf((v: org.apache.spark.ml.linalg.Vector) => v(0))
+
+    transformed.withColumn("prob", firstelement(col("probability")))
+      .drop("probability")
+      .drop("features").drop("rawprediction")
   }
 
 }
