@@ -7,7 +7,7 @@ public class Config {
     public static final String RESULT_POST_PATH = ":1880/result";
     public static final String LOG_POST_PATH = ":1880/log";
 
-    public static final String DEFAULT_FUCK_ADDRESS = "10.141.212.118";
+    public static final String DEFAULT_FUCK_ADDRESS = "10.190.88.25";
     public static final String DEFAULT_FUCK_PORT = "1888";
 
     private static String defaultAddress = null;

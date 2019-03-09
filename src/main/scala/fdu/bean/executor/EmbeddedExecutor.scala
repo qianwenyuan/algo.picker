@@ -4,7 +4,7 @@ import java.io.OutputStream
 
 import fdu.bean.generator.LocalVisitor
 import fdu.util.UserSession
-import org.apache.spark.sql
+import org.apache.spark.{SparkConf, SparkContext, sql}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.json.JSONArray
 
@@ -16,6 +16,7 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
 
   val spark: SparkSession = SparkSession
       .builder//.master("local[*]")
+      // .config(new SparkConf().setJars(Seq("/root/qwy/algo.picker-test-1216.jar")))
       .appName(s"AlgoPicker - Session: ${session.getSessionID}")
       .enableHiveSupport()
       .getOrCreate()
@@ -147,18 +148,18 @@ class EmbeddedExecutor(session: UserSession, out: OutputStream) {
   def getTable(tablename: String): String = {
     var data : String = new String(spark.sqlContext.sql("SELECT * FROM "+tablename).limit(10000).cache().collectAsList().toString())
 
-    if (tablename.indexOf("request").equals(-1)==false) {
-      data = data.replace(':', '-')
-      data = data.replace('/', '-')
+    if ((data.contains('/')||data.contains(':'))) {
+      data = data.replace(':', '_')
+      data = data.replace('/', '_')
       var i: Int = 0
       var str: String = ""
       while (i < data.length) {
-        if (i > 0 && data.charAt(i).equals('-')) {
-          str = str + '-'
+        if (i > 0 && data.charAt(i).equals('_')) {
+          str = str + '_'
           var sum: Int = 0
           while (i + 1 < data.length && data.charAt(i + 1).equals(',') == false) {
             i = i + 1
-            if (data.charAt(i).equals('-')) sum = 1
+            if (data.charAt(i).equals('_')) sum = 1
             if (sum == 0) str = str + data.charAt(i)
 
           }

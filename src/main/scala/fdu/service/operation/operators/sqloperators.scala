@@ -2,15 +2,13 @@ package fdu.service.operation.operators
 
 import java.util
 
-import breeze.linalg.max
 import fdu.bean.generator.OperatorVisitor
 import fdu.exceptions.HiveTableNotFoundException
 import fdu.service.operation.{BinaryOperation, UnaryOperation}
 import fdu.util.UserSession
-import org.apache.spark.sql.{DataFrame, Dataset, RelationalGroupedDataset, Row, SQLContext}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.json.JSONObject
-import org.apache.spark.sql
-import org.omg.CORBA.UserException
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConversions
@@ -66,9 +64,10 @@ object DataSource extends CanGenFromJson {
 
 class Filter(name: String,
              `type`: String,
-             @BeanProperty val condition: String)
+             @BeanProperty var condition: String)
   extends UnaryOperation(name, `type`)
     with SqlOperation {
+  //if (condition.equals("2012/01")) condition="2012/02";
   override def execute(session: UserSession): Dataset[Row] =
     getChild
       .asInstanceOf[CanProduce[Dataset[Row]]]
@@ -187,9 +186,37 @@ class GroupBy_Count(name: String,
   extends UnaryOperation(name, `type`)
     with SqlOperation {
   override def execute(session: UserSession): DataFrame = {
+//    val schema = StructType(StructType(Seq(StructField(groupbycolumn,IntegerType,true))))
+//    val encoders = RowEncoder(schema)
+    val spark = session.getSparkSession
+    import spark.implicits._
     getChild
       .asInstanceOf[CanProduce[Dataset[Row]]]
-      .executeCached(session).groupBy(groupbycolumn).count()
+      .executeCached(session)
+      .groupByKey(row => row.getString(0))
+      .count()
+      .toDF()
+//
+//      .groupBy(groupbycolumn)
+//
+//      .toDF(groupbycolumn)
+////        .rdd.groupBy(row => {row.getString(0)})
+////        .collect()
+////      .rdd
+////        .map(row => {row.getString(0)})
+////        .groupByKey(row => {
+////      return new Bean(row.getString(0));}, Encoders.bean(Bean.class));
+////    })
+////      .groupByKey( new MapFunction<Row, Bean>() {
+////        @Override
+////        Bean call(Row row) throws Exception {
+////          return new Bean(row.getString(0))
+////        }}, Encoders.bean(Bean.class))
+////      row => {row.getString(0)})
+////      .groupByKey({case Row(groupbycolumn: String) => (groupbycolumn)})
+//
+
+//      groupBy(groupbycolumn).count()
 
   }
   override def toString: String = "([Groupby name: " + name + " column: " + groupbycolumn + "]" + getChild + ")"
@@ -721,18 +748,12 @@ class Project(name: String,
     val child = getChild.asInstanceOf[CanProduce[Dataset[Row]]].executeCached(session)
     if (isProjectAll) child
     else {
-      val cols = getProjectionList.toArray.asInstanceOf[Array[String]]
-      child.select(cols.head, cols.tail: _*)
+      child.select(getProjectionList.map(col): _*)
     }
   }
 
   private def getProjectionList = {
     projections.split(",").map(_.trim)
-    val result = new util.ArrayList[String]
-    for (s <- projections.split(",")) {
-      result.add(s.trim)
-    }
-    result
   }
 
   private def isProjectAll = projections.trim == "*"
@@ -1777,7 +1798,6 @@ class Union(name: String,
   extends BinaryOperation(name, `type`)
     with SqlOperation {
   override def execute(session: UserSession): Dataset[Row] = {
-    import org.apache.spark.sql.functions
     getLeft.asInstanceOf[CanProduce[Dataset[Row]]].executeCached(session)
       .union(getRight.asInstanceOf[CanProduce[Dataset[Row]]].executeCached(session))
     }

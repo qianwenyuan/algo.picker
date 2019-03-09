@@ -102,50 +102,78 @@ public class ExecutorController {
     }
 
     public String createContent(Job job, UserSession userSession, String tag) {
-        String id = job.getJid();
-        String filename = job.getTable();
-        JSONObject jo = new JSONObject();
-        jo.put("tablename",job.getTable());
-        jo.put("splitname",",");
-        JSONArray hive_table_list = new JSONArray();
-
-        JSONArray array = new JSONArray("["+filename+"]");
-        List<String> list = new ArrayList<>();
-        for (int i = 0; i < array.length(); i++) {
-            list.add(array.getString(i));
+        if (tag.equals("false")) {
+            JSONObject jobj = new JSONObject();
+            JSONArray hive_table_list = new JSONArray();
+            String filename = job.getTable();
+            String id = job.getJid();
+            jobj.put("id",id);
+            jobj.put("filename",filename);
+            jobj.put("hive_table_list",hive_table_list);
+            jobj.put("tag",tag);
+            return jobj.toString();
         }
-        String[] tables = list.toArray(new String[list.size()]);
-        Tuple2<String, String>[] schemas = userSession.getEmbeddedExecutor().getTableSchemas(tables);
-        JSONArray ans = new JSONArray();
-        for (Tuple2<String, String> schema : schemas) {
-            JSONObject obj = new JSONObject();
-            obj.put("tableName", schema._1());
-            obj.put("schema", new JSONObject(schema._2()));
-            ans.put(obj);
+        else {
+            String id = job.getJid();
+            String filename = job.getTable();
+            JSONObject jo = new JSONObject();
+            jo.put("tablename", job.getTable());
+            jo.put("splitname", ",");
+            JSONArray hive_table_list = new JSONArray();
+
+            JSONArray array = new JSONArray("[" + filename + "]");
+            List<String> list = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                list.add(array.getString(i));
+            }
+            String[] tables = list.toArray(new String[list.size()]);
+            Tuple2<String, String>[] schemas = userSession.getEmbeddedExecutor().getTableSchemas(tables);
+            JSONArray ans = new JSONArray();
+            for (Tuple2<String, String> schema : schemas) {
+                JSONObject obj = new JSONObject();
+                obj.put("tableName", schema._1());
+                obj.put("schema", new JSONObject(schema._2()));
+                ans.put(obj);
+            }
+            System.out.println(tables[0]);
+            System.out.println(ans.toString());
+            ans = trans(ans);
+
+
+            JSONObject jobj = new JSONObject();
+            jobj.put("tablename", filename);
+            jobj.put("splitname", ",");
+            jobj.put("hive_table_meta", ans);
+
+            hive_table_list = new JSONArray("[" + jobj + "]");
+            JSONObject joo = new JSONObject();
+            joo.put("id", id);
+            joo.put("filename", filename);
+            joo.put("hive_table_list", hive_table_list);
+            joo.put("tag", tag);
+
+            String result = joo.toString();
+
+            System.out.println(result);
+
+            return result;
         }
-        System.out.println(tables[0]);
-        System.out.println(ans.toString());
-        ans = trans(ans);
-
-
-        JSONObject jobj = new JSONObject();
-        jobj.put("tablename",filename);
-        jobj.put("splitname",",");
-        jobj.put("hive_table_meta",ans);
-
-        hive_table_list = new JSONArray("["+jobj+"]");
-        JSONObject joo = new JSONObject();
-        joo.put("id",id);
-        joo.put("filename",filename);
-        joo.put("hive_table_list",hive_table_list);
-        joo.put("tag",tag);
-
-        String result = joo.toString();
-
-        System.out.println(result);
-
-        return result;
     }
+
+//    public Dataset ResultDeleteSpecialCol(Object result) {
+//        Dataset ans = (Dataset) result;
+//        String[] columnnames = ans.columns();
+//        for (int i=0;i<columnnames.length;++i) {
+//            if (columnnames[i].contains("features")||columnnames[i].contains("rawprediction")||columnnames[i].contains("probability")) {
+//
+//            }
+//        }
+//        try {
+//            Object[] columns = ans.collect();
+//        } catch (Exception e) {}
+////        Types.TIMESTAMP
+//        return ans;
+//    }
 
     public Integer progress=0;
     public Integer status=0;
@@ -158,7 +186,7 @@ public class ExecutorController {
     @ResponseBody
     public String generateDriver(@RequestBody final String conf, @Autowired HttpServletRequest request) throws IOException {
         //write2log(new String(String.valueOf(System.currentTimeMillis())+"-- Json: "+conf+"\n"));
-
+        System.out.println("Got the flow");
         final UserSession userSession = getUserSession(request);
         Config.setAddress(request.getRemoteAddr());
         new Thread(new Runnable() {
@@ -175,7 +203,9 @@ public class ExecutorController {
                     job_id = job.getJid();
                     //System.out.print("\njid="+job_id+","+"table="+job.getTable()+"\n");
                     Object res;
+                    System.out.println("Starting job");
                     if (userSession.getEmbeddedExecutor().tableExists(job.getTable())) {
+                        res = job.getTable()+" existed!\n";
                         res = userSession.getSparkSession().table(job.getTable());
                     } else {
                         res = ((CanProduce) job.getRootOperation()).executeCached(userSession);
@@ -191,26 +221,13 @@ public class ExecutorController {
                     System.out.print("\nRunning time: ");
                     System.out.println(end - start);
 
-                    /// !!!!!!!!!
-
 
                     userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
                             createContent(job, userSession, "true"), true);
 
-                    /// !!!!!!!!!
-                    /*
-                    try {
-                        out.write(new String(String.valueOf(System.currentTimeMillis())+"-- Job Finished. Running time: "+
-                                String.valueOf(end-start)+"\n").getBytes());
-                    } catch (FilerException fe) {
-                        fe.printStackTrace();
-                    }
-                    */
                     status = 2;
                     String new_status = new String(job_id+","+status.toString());
-                    try {
                         boolean if_job_exist = false;
-                        try {
                             File file = new File(hisPath);
                             if (file.exists() && file.isFile()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
@@ -224,7 +241,6 @@ public class ExecutorController {
                                 }
                                 reader.close();
                             }
-                        } catch (IOException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
 //                            FileWriter writer = new FileWriter("~/his_status.txt", true);
 //                            writer.append(new_status + "\n");
@@ -232,15 +248,17 @@ public class ExecutorController {
                             write2log(hisPath, new_status);
 //                            Files.write(Paths.get("~/his_status.txt"), new_status.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
                         }
-                    } catch (FileNotFoundException e) {}
-                    System.out.println("Start writing result!");
+
+                    System.out.println("====Start writing result!====");
                     try {
                         write2log(resultPath, job.getTable());
 //                        BufferedWriter writer = new BufferedWriter(new FileWriter(resultPath, true));
 //                        System.out.println("Write result success!");
 //                        writer.append(job.getTable()+"\n");
 //                        writer.close();
+                        System.out.println("====Writing result success!====");
                     } catch (Exception e) {
+                        System.out.println("====Writing result failed!====");
                         e.printStackTrace();
                     }
 
@@ -261,14 +279,14 @@ public class ExecutorController {
                     //userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "ok"));
                     progress=100;
                 } catch (HiveTableNotFoundException e1) {
-                    e1.printStackTrace();
                     userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
                             createContent(job, userSession, "false"), true);
+                    e1.printStackTrace();
+
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
-                    try {
                         boolean if_job_exist = false;
-                        try {
+
                             File file = new File(hisPath);
                             if (file.isFile() && file.exists()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
@@ -282,14 +300,12 @@ public class ExecutorController {
                                 }
                                 reader.close();
                             }
-                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
                             write2log(hisPath, new_status);
 //                            BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt", true));
 //                            writer.append(new_status + "\n");
 //                            writer.close();
                         }
-                    } catch (IOException e) {}
 
                     //userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "bbcz"));
                     /*
@@ -302,14 +318,13 @@ public class ExecutorController {
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: 表不存在\n");
                     //write2log(log_message);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
                             createContent(job, userSession, "false"), false);
+                    e.printStackTrace();
+
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
-                    try {
                         boolean if_job_exist = false;
-                        try {
                             File file = new File(hisPath);
                             if (file.isFile() && file.exists()) {
                                 BufferedReader reader = new BufferedReader(new FileReader((file)));
@@ -323,17 +338,15 @@ public class ExecutorController {
                                 }
                                 reader.close();
                             }
-                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
                             write2log(hisPath,new_status);
 //                            BufferedWriter writer = new BufferedWriter(new FileWriter("~/his_status.txt", true));
 //                            writer.append(new_status + "\n");
 //                            writer.close();
                         }
-                    } catch (IOException e1) {}
-
-                    e.printStackTrace();
-                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1880/jid/" + job.getJid() + "/status/" + "error"));
+//                    userSession.makePost(new URL("http://"+ip+":"+port+"/dmp-api/external/dataUseJobResult"),
+//                            createContent(job, userSession, "false"), false);
+                    userSession.makeGet(new URL("http://" + Config.getAddress() + ":1888/jid/" + job.getJid() + "/status/" + "error"));
                     /*
                     try {
                         out.write(new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: Runtime Error\n").getBytes());
@@ -341,14 +354,14 @@ public class ExecutorController {
                         e1.printStackTrace();
                     }
                     */
+                    System.out.println("\n\n\nRRRRRUNTIME ERRORRRRRRRRRRRR!!!!!!!\n\n\n");
                     log_message = new String(String.valueOf(System.currentTimeMillis())+"-- ERROR: Runtime Error\n");
 
                 }
-                } catch (MalformedURLException e) {
+                } catch (IOException e) {
 
                     status = -1;
                     String new_status = new String(job_id+","+status.toString());
-                    try {
                         boolean if_job_exist = false;
                         try {
                             File file = new File(hisPath);
@@ -364,7 +377,7 @@ public class ExecutorController {
                                 }
                                 reader.close();
                             }
-                        } catch (FileNotFoundException ex) {ex.printStackTrace();}
+                        } catch (IOException ex) {ex.printStackTrace();}
                         if (!if_job_exist) {
                             try {
                                 write2log(hisPath,new_status);
@@ -373,28 +386,13 @@ public class ExecutorController {
 //                                writer.close();
                             } catch (Exception e2) {e2.printStackTrace();}
                         }
-                    } catch (Exception e1) {}
 
-                    e.printStackTrace();
                 }
             }
         }).start();
         //write2log(log_message);
         return "OK";
     }
-
-    /*
-    @RequestMapping(,headers = "")
-    public String build(@Autowired HttpServletRequest request) throws  IOException {
-        UserSession userSession = getUserSession(request);
-
-        //buildTable
-        userSession.makePost(new URL("http://"+Config.getDFMAddress()+":8080/project/"+task_id+"/build"), getBuildContent(), true);
-        //getstatus
-        userSession.makeGet(new URL("http://"+Config.getDFMAddress()+":8080/job/"+task_id+"/status"));
-
-    }
-    */
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public String getTablelist(@Autowired HttpServletRequest request) throws IOException {
@@ -472,11 +470,18 @@ public class ExecutorController {
         String sql = "desc "+table_name;
         System.out.println("Running: " + sql);
         ResultSet res = stmt.executeQuery(sql);
+
         JSONArray columns = new JSONArray();
         res.next();
         columns.put(res.getString(1));
+//        int step=0;
         while (res.next()){
+//            if (step==15|| step==12||step==14|| step ==13 || step==16) {
+//                System.out.print("Type = ");
+//                System.out.println( res.getMetaData().getColumnType(1));
+//            }
             columns.put(res.getString(1));
+//            ++step;
         }
 
 
@@ -496,14 +501,14 @@ public class ExecutorController {
 //            if (res.getString(i).contains("values"))
 //                System.out.println(i);
         }
-        if (table_name.contains("lr_predict")) {
-            columns.put("prob");
-            JSONObject jobj = new JSONObject(res.getString(columncount-1));
-//            System.out.println("\n"+jobj.toString()+"\n");
-            JSONArray jarr = jobj.getJSONArray("values");
-            prob = (Double)jarr.getDouble(1);
-            row.put(prob);
-        }
+//        if (table_name.contains("lr_predict")) {
+//            columns.put("prob");
+//            JSONObject jobj = new JSONObject(res.getString(columncount-1));
+////            System.out.println("\n"+jobj.toString()+"\n");
+//            JSONArray jarr = jobj.getJSONArray("values");
+//            prob = (Double)jarr.getDouble(1);
+//            row.put(prob);
+//        }
 
 //        row+=res.getString(columncount);
         data.put(row);
@@ -514,13 +519,13 @@ public class ExecutorController {
             for (int i=1;i<=columncount;++i) {
                 row.put(res.getString(i));
             }
-            if (table_name.contains("lr_predict")) {
-                JSONObject jobj = new JSONObject(res.getString(columncount-1));
-//                System.out.println("\n"+jobj.toString()+"\n");
-                JSONArray jarr = jobj.getJSONArray("values");
-                prob = (Double)jarr.getDouble(1);
-                row.put(prob);
-            }
+//            if (table_name.contains("lr_predict")) {
+//                JSONObject jobj = new JSONObject(res.getString(columncount-1));
+////                System.out.println("\n"+jobj.toString()+"\n");
+//                JSONArray jarr = jobj.getJSONArray("values");
+//                prob = (Double)jarr.getDouble(1);
+//                row.put(prob);
+//            }
 //            row+=res.getString(columncount)+"]";
             data.put(row);
             count++;
